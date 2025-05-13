@@ -1,0 +1,2 @@
+{"_id":{"$oid":"68206c644c40a0ddabc29165"},"orderId":"ORDER_DBREF_001","description":"Order referencing a product via DBRef","productRef":{"$ref":"products","$id":{"$oid":"663f2d4e4f8a9b6c5d7e0f1a"},"$db":"mydatabase"},"quantity":1,"manufacturerCode": { "$symbol": "MANF-X200-PREMIUM" }}
+{"_id":{"$oid":"68206cb74c40a0ddabc29166"},"orderId":"ORDER_DBREF_002","description":"Order referencing a product via DBRef (CORRECT METHOD)","productRef":{"$ref":"products","$id":{"$oid":"663f2d4e4f8d6a6b5f3f2f1a"},"$db":"mydatabase"},"quantity":2}
