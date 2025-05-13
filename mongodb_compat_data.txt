@@ -1,5 +1,12 @@
 # Format: operator: version1:support, version2:support, ...
 # Data collected from Google Cloud documentation
+# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-data-types-drivers
+# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-36
+# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-40
+# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-50
+# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-60
+# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-70
+# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-80
 
 # Array Operators
 $all: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
