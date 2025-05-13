@@ -58,7 +58,7 @@ Options:
 ### Run All Assessments on a Directory
 
 ```bash
-./firestore_migration_assessment.sh --data-file sample_data/data.json --run-datatype --verbose
+./firestore_migration_assessment.sh --data-file sample_data/test.json --run-datatype
 
 # Suppress progress messages
 ./firestore_migration_assessment.sh --run-all --dir /path/to/project --quiet
