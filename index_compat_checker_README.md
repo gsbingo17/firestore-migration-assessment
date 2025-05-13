@@ -11,8 +11,6 @@ Make the script executable:
 
 ```bash
 chmod +x index_compat_checker.sh
-# Or for the enhanced version
-chmod +x index_compat_checker_fixed.sh
 ```
 
 ### Installing jq
@@ -108,7 +106,7 @@ The script automatically:
 - Iterates through all databases (excluding admin, local, and config)
 - Collects indexes from all collections (excluding system collections)
 - Ensures each index has the correct namespace information
-- Outputs a single JSON file that can be directly used with the enhanced compatibility checker
+- Outputs a single JSON file that can be directly used with the compatibility checker
 
 To use this script with authentication:
 
@@ -120,10 +118,10 @@ mongosh --quiet --host hostname --port port -u username -p password --authentica
 mongosh --quiet "mongodb://username:password@hostname:port/?authSource=admin" --file export_index.js > indexes_output.metadata.json
 ```
 
-Then analyze the exported indexes with the enhanced compatibility checker:
+Then analyze the exported indexes with the compatibility checker:
 
 ```bash
-./index_compat_checker_fixed.sh --file indexes_output.json --summary
+./index_compat_checker.sh --file indexes_output.json --summary
 ```
 
 ### Method 3: Manual Export
@@ -202,11 +200,11 @@ The compatibility checker accepts the following arguments:
 ```
 --debug                Output debugging information
 --dir DIR              Directory containing metadata files to check
---file FILE            Single metadata file to check (for the enhanced version)
+--file FILE            Single metadata file to check
 --show-issues          Show detailed compatibility issues
 --show-compatible      Show compatible indexes only
 --summary              Show a summary of compatibility statistics
---quiet                Suppress progress messages (for the enhanced version)
+--quiet                Suppress progress messages
 ```
 
 ### Examples
@@ -215,8 +213,8 @@ The compatibility checker accepts the following arguments:
 ```bash
 ./index_compat_checker.sh --dir /path/to/metadata --summary
 
-# Or for the enhanced version with a single file
-./index_compat_checker_fixed.sh --file indexes_output.json --summary
+# Or with a single file
+./index_compat_checker.sh --file indexes_output.json --summary
 ```
 
 Output:
@@ -313,10 +311,9 @@ The tool checks for the following compatibility issues when migrating from Mongo
 1. **Unsupported Index Types**:
    - 2d (geospatial)
    - 2dsphere
-   - geoHaystack
    - hashed
 
-2. **Unsupported Index Features** (Enhanced version only):
+2. **Unsupported Index Features**:
    - Unique indexes
    - Text indexes
    - TTL indexes (expireAfterSeconds)
@@ -330,26 +327,19 @@ The tool checks for the following compatibility issues when migrating from Mongo
 4. **Unsupported Collection Options**:
    - capped collections
 
-5. **Exceeded Limits**:
-   - Database name length > 63 characters
-   - Collection name length > 57 characters
-   - Namespace length > 120 characters
-   - Collection qualified index name length > 255 characters
-   - Fully qualified index name length > 377 characters
-   - Compound index with more than 32 keys
-   - Index key name length > 2048 characters
+## Features
 
-## Enhanced Version Features
+The index compatibility checker includes the following features:
 
-The enhanced version (`index_compat_checker_fixed.sh`) includes the following improvements:
+1. **Comprehensive Index Analysis**:
+   - Detects unsupported index types (2d, 2dsphere, hashed)
+   - Identifies unique indexes (indexes with the `unique: true` property)
+   - Finds text indexes (indexes with `"_fts": "text"` in the key field)
+   - Detects TTL indexes (indexes with the `expireAfterSeconds` field)
+   - Identifies partial indexes (indexes with the `partialFilterExpression` field)
 
-1. **Additional Unsupported Index Detection**:
-   - Unique indexes: Indexes with the `unique: true` property
-   - Text indexes: Indexes with `"_fts": "text"` in the key field
-   - TTL indexes: Indexes with the `expireAfterSeconds` field
-   - Partial indexes: Indexes with the `partialFilterExpression` field
-
-2. **Single File Support**:
+2. **Flexible Input Options**:
+   - Can process a directory of metadata files with the `--dir` option
    - Can process a single metadata file with the `--file` option
    - Useful for analyzing the output from `export_index.js`
 
@@ -360,6 +350,7 @@ The enhanced version (`index_compat_checker_fixed.sh`) includes the following im
 4. **Detailed Reporting**:
    - Separate sections for each type of unsupported index
    - Lists affected indexes by category
+   - Provides summary statistics on compatibility
 
 ## Directory Structure
 
@@ -385,7 +376,7 @@ metadata_dir/
   └── collection3.metadata.json
 ```
 
-### Single File (Enhanced Version)
+### Single File
 
 ```
 indexes_output.json
