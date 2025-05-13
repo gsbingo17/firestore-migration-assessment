@@ -59,7 +59,6 @@ usage() {
     echo "  --show-issues          Show detailed compatibility issues"
     echo "  --show-compatible      Show compatible indexes only"
     echo "  --summary              Show a summary of compatibility statistics (default)"
-    echo "  --support-2dsphere     Consider 2dsphere indexes as compatible"
     echo "  --quiet                Suppress progress messages"
     echo "  --help                 Show this help message"
     exit 1
@@ -92,12 +91,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --summary)
             SUMMARY=true
-            shift
-            ;;
-        --support-2dsphere)
-            SUPPORT_2DSPHERE=true
-            # Remove 2dsphere from unsupported types
-            UNSUPPORTED_INDEX_TYPES=("2d" "geoHaystack" "hashed")
             shift
             ;;
         --quiet)

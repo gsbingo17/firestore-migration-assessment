@@ -114,10 +114,10 @@ To use this script with authentication:
 
 ```bash
 # With username/password authentication
-mongosh --quiet --host hostname --port port -u username -p password --authenticationDatabase admin --file export_index.js > indexes_output.json
+mongosh --quiet --host hostname --port port -u username -p password --authenticationDatabase admin --file export_index.js > indexes_output.meta.data.json
 
 # With connection string
-mongosh --quiet "mongodb://username:password@hostname:port/?authSource=admin" --file export_index.js > indexes_output.json
+mongosh --quiet "mongodb://username:password@hostname:port/?authSource=admin" --file export_index.js > indexes_output.metadata.json
 ```
 
 Then analyze the exported indexes with the enhanced compatibility checker:
@@ -206,7 +206,6 @@ The compatibility checker accepts the following arguments:
 --show-issues          Show detailed compatibility issues
 --show-compatible      Show compatible indexes only
 --summary              Show a summary of compatibility statistics
---support-2dsphere     Consider 2dsphere indexes as compatible
 --quiet                Suppress progress messages (for the enhanced version)
 ```
 
@@ -307,20 +306,13 @@ Output:
 }
 ```
 
-#### Support 2dsphere indexes:
-```bash
-./index_compat_checker.sh --dir /path/to/metadata --summary --support-2dsphere
-```
-
-This will consider 2dsphere indexes as compatible with Firestore.
-
 ## Compatibility Checks
 
 The tool checks for the following compatibility issues when migrating from MongoDB to Firestore:
 
 1. **Unsupported Index Types**:
    - 2d (geospatial)
-   - 2dsphere (unless --support-2dsphere is specified)
+   - 2dsphere
    - geoHaystack
    - hashed
 
