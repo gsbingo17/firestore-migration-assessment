@@ -19,15 +19,6 @@ SUMMARY=true
 SUPPORT_2DSPHERE=false
 QUIET=false
 
-# limits
-DB_NAME_MAX_LENGTH=63
-COLLECTION_NAME_MAX_LENGTH=57
-NAMESPACE_MAX_LENGTH=120
-COLLECTION_QUALIFIED_INDEX_NAME_MAX_LENGTH=255
-FULLY_QUALIFIED_INDEX_NAME_MAX_LENGTH=377
-COMPOUND_INDEX_MAX_KEYS=32
-INDEX_KEY_MAX_LENGTH=2048
-
 # Unsupported features
 UNSUPPORTED_INDEX_TYPES=("2d" "2dsphere" "hashed")
 UNSUPPORTED_INDEX_OPTIONS=("storageEngine" "collation" "dropDuplicates")
@@ -195,27 +186,9 @@ process_metadata_file() {
     
     debug "Database: $db_name, Collection: $collection_name"
     
-    # Check database name length
-    if [[ ${#db_name} -gt $DB_NAME_MAX_LENGTH ]]; then
-        jq --arg db "$db_name" --arg msg "Database name greater than $DB_NAME_MAX_LENGTH characters" \
-           '. + {($db): {"exceeded_limits": {($msg): $db}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-        mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-    fi
     
-    # Check collection name length
-    if [[ ${#collection_name} -gt $COLLECTION_NAME_MAX_LENGTH ]]; then
-        jq --arg db "$db_name" --arg coll "$collection_name" --arg msg "Collection name greater than $COLLECTION_NAME_MAX_LENGTH characters" \
-           '. + {($db): {($coll): {"exceeded_limits": {($msg): $coll}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-        mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-    fi
-    
-    # Check namespace length
+    # Define namespace
     local namespace="${db_name}.${collection_name}"
-    if [[ ${#namespace} -gt $NAMESPACE_MAX_LENGTH ]]; then
-        jq --arg db "$db_name" --arg coll "$collection_name" --arg ns "$namespace" --arg msg "Namespace greater than $NAMESPACE_MAX_LENGTH characters" \
-           '. + {($db): {($coll): {"exceeded_limits": {($msg): $ns}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-        mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-    fi
     
     # Check collection options
     local options=$(jq -r '.options // {}' "$file")
@@ -237,32 +210,7 @@ process_metadata_file() {
         local index_name=$(jq -r '.name' <<< "$index")
         debug "Processing index: $index_name"
         
-        # Check index name length
-        local collection_qualified_index_name="${collection_name}\$${index_name}"
-        if [[ ${#collection_qualified_index_name} -gt $COLLECTION_QUALIFIED_INDEX_NAME_MAX_LENGTH ]]; then
-            jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" --arg cqin "$collection_qualified_index_name" \
-               --arg msg "<collection>\$<index> greater than $COLLECTION_QUALIFIED_INDEX_NAME_MAX_LENGTH characters" \
-               '. + {($db): {($coll): {($idx): {"exceeded_limits": {($msg): $cqin}}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-        fi
         
-        # Check fully qualified index name length
-        local fully_qualified_index_name="${namespace}\$${index_name}"
-        if [[ ${#fully_qualified_index_name} -gt $FULLY_QUALIFIED_INDEX_NAME_MAX_LENGTH ]]; then
-            jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" --arg fqin "$fully_qualified_index_name" \
-               --arg msg "<db>.<collection>\$<index> greater than $FULLY_QUALIFIED_INDEX_NAME_MAX_LENGTH characters" \
-               '. + {($db): {($coll): {($idx): {"exceeded_limits": {($msg): $fqin}}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-        fi
-        
-        # Check compound index key count
-        local key_count=$(jq -r '.key | length' <<< "$index")
-        if [[ $key_count -gt $COMPOUND_INDEX_MAX_KEYS ]]; then
-            jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" --arg count "$key_count" \
-               --arg msg "Index contains more than $COMPOUND_INDEX_MAX_KEYS keys" \
-               '. + {($db): {($coll): {($idx): {"exceeded_limits": {($msg): $count}}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-        fi
         
         # Check for unsupported index options
         for option in "${UNSUPPORTED_INDEX_OPTIONS[@]}"; do
@@ -429,13 +377,6 @@ process_metadata_file() {
                 fi
             done
             
-            # Check key name length
-            if [[ ${#key_name} -gt $INDEX_KEY_MAX_LENGTH ]]; then
-                jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" --arg key "$key_name" \
-                   --arg msg "Key name greater than $INDEX_KEY_MAX_LENGTH characters" \
-                   '. + {($db): {($coll): {($idx): {"exceeded_limits": {($msg): $key}}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-                mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-            fi
         done <<< "$keys"
         
         # Count incompatible indexes
