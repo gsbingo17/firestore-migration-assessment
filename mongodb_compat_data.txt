@@ -63,9 +63,9 @@ $[]: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
 $[<identifier>]: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
 $addToSet: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
 $pop: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$pull: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$pull: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
 $pullAll: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$push:update: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$push:update: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
 
 # Update Operators - Bitwise Operators
 $bit: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
