@@ -41,13 +41,13 @@ Options:
   --log-file FILE           MongoDB log file to analyze for operator compatibility
   --data-file FILE          JSON data file to check for data type compatibility
   --metadata-dir DIR        Directory containing index metadata files
-  --mongodb-version VER     MongoDB version to check against (3.6, 4.0, 5.0, 6.0, 7.0, 8.0, all)
   --output-format FORMAT    Output format (text, json) [default: text]
   --output-file FILE        File to write the report to [default: stdout]
   --run-all                 Run all assessment types
   --run-datatype            Run only datatype compatibility assessment
   --run-operator            Run only operator compatibility assessment
   --run-index               Run only index compatibility assessment
+  --collect-samples         Collect sample data from MongoDB for datatype assessment
   --verbose                 Show detailed information
   --quiet                   Suppress progress messages and non-essential output
   --help                    Display this help message
@@ -67,8 +67,8 @@ Options:
 ### Run Specific Assessment Types
 
 ```bash
-# Check operator compatibility with MongoDB 6.0
-./firestore_migration_assessment.sh --log-file logs/mongodb.log --run-operator --mongodb-version=6.0
+# Check operator compatibility
+./firestore_migration_assessment.sh --log-file logs/mongodb.log --run-operator
 
 # Check data type compatibility
 ./firestore_migration_assessment.sh --data-file sample_data/data.json --run-datatype
@@ -104,7 +104,7 @@ Datatype Compatibility:
   Files with issues: 3
   Total issues detected: 15
 
-Operator Compatibility (MongoDB 7.0):
+Operator Compatibility:
   Files processed: 5
   Unsupported operators found: 8
 
@@ -143,7 +143,6 @@ The JSON format provides structured data that can be processed programmatically:
       "total_issues": 15
     },
     "operator_compatibility": {
-      "mongodb_version": "7.0",
       "files_processed": 5,
       "unsupported_operators": 8
     },
