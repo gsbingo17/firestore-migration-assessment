@@ -1,262 +1,256 @@
-# Format: operator: version1:support, version2:support, ...
-# Data collected from Google Cloud documentation
-# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-data-types-drivers
-# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-36
-# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-40
-# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-50
-# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-60
-# https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-70
+# Format: operator[:context]: support_status (Yes/No)
+# Data simplified from Google Cloud documentation
 # https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-80
 
 # Array Operators
-$all: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$elemMatch: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$size: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$all: Yes
+$elemMatch: Yes
+$size: Yes
 
 # Bitwise Operators
-$bitsAllClear: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$bitsAnyClear: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$bitsAnySet: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$bitsAllSet: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$bitsAllClear: No
+$bitsAnyClear: No
+$bitsAnySet: No
+$bitsAllSet: No
 
 # Comment Operator
-$comment: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$comment: No
 
 # Comparison Operators
-$eq: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$gt: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$gte: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$lt: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$lte: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$ne: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$in: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$nin: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$eq: Yes
+$gt: Yes
+$gte: Yes
+$lt: Yes
+$lte: Yes
+$ne: Yes
+$in: Yes
+$nin: Yes
 
 # Element Operators
-$exists: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$type: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$exists: Yes
+$type: Yes
 
 # Evaluation Query Operators
-$expr: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$jsonSchema: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$mod: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$regex: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$text: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$where: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$expr: Yes
+$jsonSchema: No
+$mod: Yes
+$regex: Yes
+$text: No
+$where: No
 
 # Logical Operators
-$and: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$nor: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$not: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$or: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$and: Yes
+$nor: Yes
+$not: Yes
+$or: Yes
 
 # Projection Operators
-$elemMatch: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$meta: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$slice:projection: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$elemMatch: Yes
+$meta: No
+$slice:projection: Yes
 
 # Positional Operator (no context)
-$: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$: No
 
 # Update Operators - Array Operators
-$[]: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$[<identifier>]: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$addToSet: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$pop: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$pull: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$pullAll: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$push:update: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$[]: No
+$[<identifier>]: No
+$addToSet: No
+$pop: No
+$pull: Yes
+$pullAll: No
+$push:update: Yes
 
 # Update Operators - Bitwise Operators
-$bit: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$bit: Yes
 
 # Update Operators - Field Operators
-$currentDate: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$inc: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$max: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$min: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$mul: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$rename: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$setOnInsert: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$currentDate: Yes
+$inc: Yes
+$max: Yes
+$min: Yes
+$mul: Yes
+$rename: Yes
+$setOnInsert: Yes
 
 # Update Modifiers
-$each: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$position: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$slice:update: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$sort:update: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$each: No
+$position: No
+$slice:update: No
+$sort:update: No
 
 # Accumulator Expressions
-$addToSet: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$avg: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$count: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$first: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$last: 3.6:No, 4.0:No, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$max: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$min: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$push:accumulator: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$stdDevPop: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$stdDevSamp: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$sum: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$addToSet: No
+$avg: Yes
+$count: Yes
+$first: Yes
+$last: Yes
+$max: Yes
+$min: Yes
+$push:accumulator: Yes
+$stdDevPop: No
+$stdDevSamp: No
+$sum: Yes
 
 # Arithmetic Operators
-$abs: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$add: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$ceil: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$divide: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$exp: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$floor: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$ln: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$log: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$log10: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$mod: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$multiply: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$pow: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$sqrt: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$subtract: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$trunc: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$abs: Yes
+$add: Yes
+$ceil: Yes
+$divide: Yes
+$exp: No
+$floor: Yes
+$ln: No
+$log: No
+$log10: No
+$mod: Yes
+$multiply: Yes
+$pow: No
+$sqrt: No
+$subtract: Yes
+$trunc: No
 
 # Array Operators (Aggregation)
-$arrayElemAt: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$arrayToObject: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$concatArrays: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$filter: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$firstN: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$in: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$indexOfArray: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$isArray: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$objectToArray: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$range: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$reduce: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$reverseArray: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$size: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$slice:aggregation: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$zip: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$arrayElemAt: Yes
+$arrayToObject: Yes
+$concatArrays: Yes
+$filter: No
+$firstN: No
+$in: Yes
+$indexOfArray: No
+$isArray: Yes
+$objectToArray: No
+$range: No
+$reduce: No
+$reverseArray: Yes
+$size: Yes
+$slice:aggregation: Yes
+$zip: No
 
 # Boolean Operators
-$and: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$not: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$or: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$and: Yes
+$not: Yes
+$or: Yes
 
 # Comparison Operators (Aggregation)
-$cmp: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$eq: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$gt: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$gte: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$lt: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$lte: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$ne: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$cmp: Yes
+$eq: Yes
+$gt: Yes
+$gte: Yes
+$lt: Yes
+$lte: Yes
+$ne: Yes
 
 # Conditional Expression Operators
-$cond: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$ifNull: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$switch: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$cond: Yes
+$ifNull: Yes
+$switch: Yes
 
 # Date Operators
-$dateFromParts: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$dateFromString: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$dateToParts: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$dateToString: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$dayOfMonth: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$dayOfWeek: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$dayOfYear: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$hour: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$isoDayOfWeek: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$isoWeek: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$isoWeekYear: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$millisecond: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$minute: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$month: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$second: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$week: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$year: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$dateFromParts: No
+$dateFromString: Yes
+$dateToParts: Yes
+$dateToString: Yes
+$dayOfMonth: Yes
+$dayOfWeek: Yes
+$dayOfYear: Yes
+$hour: Yes
+$isoDayOfWeek: Yes
+$isoWeek: Yes
+$isoWeekYear: Yes
+$millisecond: Yes
+$minute: Yes
+$month: Yes
+$second: Yes
+$week: Yes
+$year: Yes
 
 # Miscellaneous Operators
-$literal: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$mergeObjects: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$natural: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$literal: Yes
+$mergeObjects: No
+$natural: No
 
 # Set Operators
-$allElementsTrue: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$anyElementTrue: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$setDifference: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$setEquals: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$setIntersection: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$setIsSubset: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$setUnion: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$allElementsTrue: No
+$anyElementTrue: No
+$setDifference: No
+$setEquals: No
+$setIntersection: No
+$setIsSubset: No
+$setUnion: No
 
 # Stage operators
-$addFields: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$bucket: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$bucketAuto: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$collStats: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$count: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$currentOp: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$facet: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$geoNear: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$graphLookup: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$group: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$indexStats: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$limit: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$listLocalSessions: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$listSessions: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$lookup: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$match: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$out: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$project: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$redact: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$replaceRoot: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$replaceWith: 3.6:No, 4.0:No, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$sample: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$set: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$skip: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$sort:stage: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$sortByCount: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$unset: 3.6:No, 4.0:No, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$unwind: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$addFields: Yes
+$bucket: No
+$bucketAuto: No
+$collStats: No
+$count: Yes
+$currentOp: No
+$facet: No
+$geoNear: No
+$graphLookup: No
+$group: Yes
+$indexStats: No
+$limit: Yes
+$listLocalSessions: No
+$listSessions: No
+$lookup: Yes
+$match: Yes
+$out: No
+$project: Yes
+$redact: No
+$replaceRoot: Yes
+$replaceWith: Yes
+$sample: No
+$set: Yes
+$skip: Yes
+$sort:stage: Yes
+$sortByCount: No
+$unset: Yes
+$unwind: Yes
 
 # String Operators
-$concat: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$indexOfBytes: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$indexOfCP: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$split: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$strcasecmp: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$strLenBytes: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$strLenCP: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$substr: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$substrBytes: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$substrCP: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$toLower: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$toUpper: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
+$concat: Yes
+$indexOfBytes: Yes
+$indexOfCP: Yes
+$split: Yes
+$strcasecmp: Yes
+$strLenBytes: Yes
+$strLenCP: Yes
+$substr: Yes
+$substrBytes: Yes
+$substrCP: Yes
+$toLower: Yes
+$toUpper: Yes
 
 # System Variables
-$CURRENT: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$DESCEND: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$KEEP: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$PRUNE: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$REMOVE: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$ROOT: 3.6:Yes, 4.0:Yes, 5.0:Yes, 6.0:Yes, 7.0:Yes, 8.0:Yes
-$clusterTime: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$CURRENT: No
+$DESCEND: No
+$KEEP: No
+$PRUNE: No
+$REMOVE: Yes
+$ROOT: Yes
+$clusterTime: No
 
 # Text Search Operators
-$meta: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$meta: No
 
 # Type conversion operators
-$convert: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$convert: No
 
 # Variable Operators
-$let: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$map: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$let: No
+$map: No
 
 # Geospatial Operators
-$box: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$center: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$centerSphere: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$geometry: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$maxDistance: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$minDistance: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$polygon: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$geoWithin: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$geoIntersects: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$near: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$nearSphere: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
-$uniqueDocs: 3.6:No, 4.0:No, 5.0:No, 6.0:No, 7.0:No, 8.0:No
+$box: No
+$center: No
+$centerSphere: No
+$geometry: No
+$maxDistance: No
+$minDistance: No
+$polygon: No
+$geoWithin: No
+$geoIntersects: No
+$near: No
+$nearSphere: No
+$uniqueDocs: No

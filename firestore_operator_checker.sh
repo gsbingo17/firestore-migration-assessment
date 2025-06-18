@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# MongoDB Compatibility Tool
+# Firestore Operator Compatibility Checker
 # This script checks MongoDB code/logs for operators that may not be supported in Firestore
 
 # Redirect stderr to /dev/null to suppress grep error messages
 exec 2>/dev/null
-
-# Define MongoDB versions we support
-MONGODB_VERSIONS="3.6 4.0 5.0 6.0 7.0 8.0"
 
 # Use the external compatibility data file
 cp mongodb_compat_data.txt /tmp/mongodb_compat_data.txt
@@ -20,27 +17,24 @@ function show_usage {
     echo "Usage: firestore_operator_checker.sh [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --mongodb-version=VERSION  MongoDB version to check compatibility for (3.6, 4.0, 5.0, 6.0, 7.0, 8.0, all)"
-    echo "  --mode=SCAN|CSV|STATS      Operation mode (default: SCAN)"
+    echo "  --mode=SCAN|CSV            Operation mode (default: SCAN)"
     echo "  --dir=DIR                  Directory to scan (alias for --directory)"
     echo "  --directory=DIR            Directory to scan"
     echo "  --file=FILE                Specific file to scan"
     echo "  --excluded-extensions=EXT  Comma-separated list of extensions to exclude (default: none)"
-    echo "  --included-extensions=EXT a Comma-separated list of extensions to include (default: all)"
+    echo "  --included-extensions=EXT  Comma-separated list of extensions to include (default: all)"
     echo "  --excluded-directories=DIR Comma-separated list of directories to exclude (default: none)"
     echo "  --show-supported           Show supported operators in report"
     echo "  --help                     Display this help message"
     echo ""
     echo "Examples:"
-    echo "  ./firestore_operator_checker.sh --mongodb-version=6.0 --mode=scan --dir=./src"
-    echo "  ./firestore_operator_checker.sh --mongodb-version=all --mode=csv"
-    echo "  ./firestore_operator_checker.sh --mongodb-version=5.0 --mode=stats"
+    echo "  ./firestore_operator_checker.sh --mode=scan --dir=./src"
+    echo "  ./firestore_operator_checker.sh --mode=csv"
 }
 
-# Function to check if an operator is supported in a specific MongoDB version
+# Function to check if an operator is supported
 function is_supported {
     local operator="$1"
-    local version="$2"
     
     # Get the operator line from the data file
     local operator_line=$(grep "^\\$operator:" /tmp/mongodb_compat_clean.txt)
@@ -51,26 +45,21 @@ function is_supported {
         return
     fi
     
-    # Extract the version-specific support status
-    local version_status=$(echo "$operator_line" | grep -o "$version:[^,]*" | cut -d':' -f2)
+    # Extract the support status
+    local support_status=$(echo "$operator_line" | cut -d':' -f2 | tr -d ' ')
     
-    # If version status not found, assume not supported
-    if [ -z "$version_status" ]; then
-        echo "No"
-    else
-        echo "$version_status"
-    fi
+    # Return the support status
+    echo "$support_status"
 }
 
 # Function to scan files for MongoDB operators
 function scan_mode {
     local dir="$1"
     local file="$2"
-    local mongodb_version="$3"
-    local excluded_exts="$4"
-    local included_exts="$5"
-    local excluded_dirs="$6"
-    local show_supported="$7"
+    local excluded_exts="$3"
+    local included_exts="$4"
+    local excluded_dirs="$5"
+    local show_supported="$6"
     
     # Create a temporary file to store unsupported operator locations
     rm -f /tmp/mongodb_compat_locations.txt
@@ -160,75 +149,57 @@ function scan_mode {
             continue
         fi
         
-        # Process the file based on MongoDB version
-        if [ "$mongodb_version" = "all" ]; then
-            # Check against all versions
-            for version in $MONGODB_VERSIONS; do
-                scan_file_for_version "$current_file" "$version" "$show_supported"
-            done
-        else
-            # Check against specific version
-            scan_file_for_version "$current_file" "$mongodb_version" "$show_supported"
-        fi
+        # Process the file
+        scan_file_for_operators "$current_file" "$show_supported"
     done
     
     # Generate summary report
     echo ""
-    echo "Firestore Supported MongoDB Operators Summary:"
+    echo "Firestore Operator Compatibility Summary:"
     echo "----------------------------------------------"
     echo "Processed $processed_files files, skipped $skipped_files files"
     
-    if [ "$mongodb_version" = "all" ]; then
-        echo "Checked compatibility with all MongoDB versions: $MONGODB_VERSIONS"
-    else
-        echo "Checked compatibility with MongoDB $mongodb_version"
-    fi
-    
-    # Count unique operator:version combinations
-    local unique_operators=$(cut -d':' -f1,2 /tmp/mongodb_compat_locations.txt | sort | uniq | wc -l)
+    # Count unique operator combinations
+    local unique_operators=$(cut -d':' -f1 /tmp/mongodb_compat_locations.txt | sort | uniq | wc -l)
     
     if [ "$unique_operators" -eq 0 ]; then
         echo "No unsupported operators found."
     else
         echo "Found $unique_operators unsupported operators:"
         
-        # Process each unique operator:version combination
-        for op_ver in $(cut -d':' -f1,2 /tmp/mongodb_compat_locations.txt | sort | uniq); do
+        # Process each unique operator
+        for operator in $(cut -d':' -f1 /tmp/mongodb_compat_locations.txt | sort | uniq); do
             echo ""
-            # Extract operator and version
-            local operator=$(echo "$op_ver" | cut -d':' -f1)
-            local version=$(echo "$op_ver" | cut -d':' -f2)
             
             # Special handling for array operators
             if [ "$operator" = "array_all_positional" ]; then
-                echo "Operator: \$[] (MongoDB $version)"
+                echo "Operator: \$[]"
             elif [ "$operator" = "array_filtered_positional" ]; then
-                echo "Operator: \$[<identifier>] (MongoDB $version)"
+                echo "Operator: \$[<identifier>]"
             else
-                echo "Operator: \$${operator} (MongoDB $version)"
+                echo "Operator: \$${operator}"
             fi
             
             # Count total occurrences
-            local total_occurrences=$(grep "^${operator}:${version}:" /tmp/mongodb_compat_locations.txt | wc -l)
+            local total_occurrences=$(grep "^${operator}:" /tmp/mongodb_compat_locations.txt | wc -l)
             
             echo "Total occurrences: $total_occurrences"
             echo "Locations:"
             
             # Display each location
-            grep "^${operator}:${version}:" /tmp/mongodb_compat_locations.txt | while read -r line; do
-                local file=$(echo "$line" | cut -d':' -f3)
-                local line_num=$(echo "$line" | cut -d':' -f4)
+            grep "^${operator}:" /tmp/mongodb_compat_locations.txt | while read -r line; do
+                local file=$(echo "$line" | cut -d':' -f2)
+                local line_num=$(echo "$line" | cut -d':' -f3)
                 echo "  $file (line $line_num)"
             done
         done
     fi
 }
 
-# Function to scan a single file for a specific MongoDB version
-function scan_file_for_version {
+# Function to scan a single file for MongoDB operators
+function scan_file_for_operators {
     local file="$1"
-    local version="$2"
-    local show_supported="$3"
+    local show_supported="$2"
     
     # Create a temporary file to store $sort operators in aggregation pipeline context
     rm -f /tmp/mongodb_sort_stage_lines.txt
@@ -242,8 +213,8 @@ function scan_file_for_version {
     grep -n "^[[:space:]]*\/\/" "$file" 2>/dev/null | cut -d':' -f1 >> /tmp/mongodb_excluded_lines.txt
     
     # Special handling for $sort operator in aggregation pipeline
-    # First check if $sort:stage is supported in this version
-    local sort_stage_support=$(grep "^\$sort:stage:" /tmp/mongodb_compat_clean.txt | grep -o "$version:[^,]*" | cut -d':' -f2)
+    # Check if $sort:stage is supported
+    local sort_stage_support=$(grep "^\$sort:stage:" /tmp/mongodb_compat_clean.txt | cut -d':' -f2 | tr -d ' ')
     if [ "$sort_stage_support" = "Yes" ]; then
         # Look for $sort in aggregation pipeline context
         if grep -q "\$sort" "$file"; then
@@ -263,7 +234,7 @@ function scan_file_for_version {
                 if echo "$context_before" | grep -q -E "aggregate|pipeline"; then
                     # This is a $sort in aggregation context, which is supported
                     if [ "$show_supported" = "true" ]; then
-                        echo "  Found supported operator: \$sort (in stage context) (MongoDB $version)"
+                        echo "  Found supported operator: \$sort (in stage context)"
                         echo "      Line $line_num: $line_content"
                     fi
                     
@@ -275,8 +246,8 @@ function scan_file_for_version {
     fi
     
     # Special handling for $push in accumulator context
-    # First check if $push:accumulator is supported in this version
-    local push_accumulator_support=$(grep "^\$push:accumulator:" /tmp/mongodb_compat_clean.txt | grep -o "$version:[^,]*" | cut -d':' -f2)
+    # Check if $push:accumulator is supported
+    local push_accumulator_support=$(grep "^\$push:accumulator:" /tmp/mongodb_compat_clean.txt | cut -d':' -f2 | tr -d ' ')
     if [ "$push_accumulator_support" = "Yes" ]; then
         # Look for $push in accumulator context
         if grep -q "\$push" "$file"; then
@@ -302,7 +273,7 @@ function scan_file_for_version {
                 elif echo "$context_before" | grep -q -E "\$group|accumulator"; then
                     # This is a $push in accumulator context, which is supported
                     if [ "$show_supported" = "true" ]; then
-                        echo "  Found supported operator: \$push (in accumulator context) (MongoDB $version)"
+                        echo "  Found supported operator: \$push (in accumulator context)"
                         echo "      Line $line_num: $line_content"
                     fi
                     
@@ -314,8 +285,8 @@ function scan_file_for_version {
     fi
     
     # Special handling for $slice in projection context
-    # First check if $slice:projection is supported in this version
-    local slice_projection_support=$(grep "^\$slice:projection:" /tmp/mongodb_compat_clean.txt | grep -o "$version:[^,]*" | cut -d':' -f2)
+    # Check if $slice:projection is supported
+    local slice_projection_support=$(grep "^\$slice:projection:" /tmp/mongodb_compat_clean.txt | cut -d':' -f2 | tr -d ' ')
     if [ "$slice_projection_support" = "Yes" ]; then
         # Look for $slice in projection context
         if grep -q "\$slice" "$file"; then
@@ -345,7 +316,7 @@ function scan_file_for_version {
                 elif echo "$context_before" | grep -q -E "find\(|project|projection|\$project"; then
                     # This is a $slice in projection context, which is supported
                     if [ "$show_supported" = "true" ]; then
-                        echo "  Found supported operator: \$slice (in projection context) (MongoDB $version)"
+                        echo "  Found supported operator: \$slice (in projection context)"
                         echo "      Line $line_num: $line_content"
                     fi
                     
@@ -357,12 +328,12 @@ function scan_file_for_version {
     fi
     
     # Special handling for $[] operator (all positional operator)
-    # Check if $[] is supported in this version
-    local array_all_positional_support=$(grep "^\$\[\]:" /tmp/mongodb_compat_clean.txt | grep -o "$version:[^,]*" | cut -d':' -f2)
+    # Check if $[] is supported
+    local array_all_positional_support=$(grep "^\$\[\]:" /tmp/mongodb_compat_clean.txt | cut -d':' -f2 | tr -d ' ')
     if [ "$array_all_positional_support" = "No" ]; then
         # Look for $[] pattern in the file using standard grep with escaped characters
         if grep -q '\$\[\]' "$file" 2>/dev/null; then
-            echo "  Found unsupported operator: \$[] (MongoDB $version)"
+            echo "  Found unsupported operator: \$[]"
             echo "    Line numbers:"
             
             # Use standard grep to find lines with $[] pattern
@@ -377,21 +348,21 @@ function scan_file_for_version {
                 
                 echo "      Line $line_num: $line_content"
                 # Store for summary report
-                echo "array_all_positional:$version:$file:$line_num" >> /tmp/mongodb_compat_locations.txt
+                echo "array_all_positional:$file:$line_num" >> /tmp/mongodb_compat_locations.txt
             done
         fi
     fi
     
     # Special handling for $[<identifier>] operator (filtered positional operator)
-    # Check if $[<identifier>] is supported in this version
-    local array_filtered_positional_support=$(grep "^\$\[<identifier>\]:" /tmp/mongodb_compat_clean.txt 2>/dev/null | grep -o "$version:[^,]*" 2>/dev/null | cut -d':' -f2)
+    # Check if $[<identifier>] is supported
+    local array_filtered_positional_support=$(grep "^\$\[<identifier>\]:" /tmp/mongodb_compat_clean.txt 2>/dev/null | cut -d':' -f2 | tr -d ' ')
     if [ "$array_filtered_positional_support" = "No" ]; then
         # Look for $[element] pattern in the file using standard grep
         # We'll use a simpler pattern first to find potential matches
         if grep -q '\$\[' "$file" 2>/dev/null; then
             # Then filter out the $[] matches to only get $[identifier] matches
             if grep -v '\$\[\]' "$file" 2>/dev/null | grep -q '\$\[' 2>/dev/null; then
-                echo "  Found unsupported operator: \$[<identifier>] (MongoDB $version)"
+                echo "  Found unsupported operator: \$[<identifier>]"
                 echo "    Line numbers:"
                 
                 # Get all lines with $[ but not $[]
@@ -406,7 +377,7 @@ function scan_file_for_version {
                     
                     echo "      Line $line_num: $line_content"
                     # Store for summary report
-                    echo "array_filtered_positional:$version:$file:$line_num" >> /tmp/mongodb_compat_locations.txt
+                    echo "array_filtered_positional:$file:$line_num" >> /tmp/mongodb_compat_locations.txt
                 done
             fi
         fi
@@ -436,14 +407,8 @@ function scan_file_for_version {
             continue
         fi
         
-        # Extract support status for this version
-        local version_pattern="$version:[^,]*"
-        if ! echo "$line" | grep -q "$version_pattern"; then
-            # Skip if this version is not listed for this operator
-            continue
-        fi
-        
-        local support=$(echo "$line" | grep -o "$version_pattern" | cut -d':' -f2)
+        # Extract support status
+        local support=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
         
         # Skip if support status couldn't be determined
         if [ -z "$support" ]; then
@@ -461,7 +426,6 @@ function scan_file_for_version {
         if [ -z "$operator_name" ]; then
             # For the bare $ operator, use a pattern that looks for the positional operator
             # This pattern looks for field references ending with $, which is how the positional operator is typically used
-            # search_pattern="\"[^\"]*\.\\\$\""
             search_pattern=\"[^\"]*\.\\\$[^\"]*\"
         fi
         
@@ -492,7 +456,7 @@ function scan_file_for_version {
                             # Store for temporary display
                             echo "      Line $line_num: $line_content" >> /tmp/mongodb_operator_matches.txt
                             # Store for summary report
-                            echo "${operator_name}:${version}:${file}:${line_num}" >> /tmp/mongodb_compat_locations.txt
+                            echo "${operator_name}:$file:$line_num" >> /tmp/mongodb_compat_locations.txt
                         fi
                     else
                         # For all other operators, verify it's a real operator match (not part of another word)
@@ -560,7 +524,7 @@ function scan_file_for_version {
                                 echo "      Line $line_num: $line_content" >> /tmp/mongodb_operator_matches.txt
                                 
                                 # Store for summary report
-                                echo "${operator_name}:${version}:${file}:${line_num}" >> /tmp/mongodb_compat_locations.txt
+                                echo "${operator_name}:$file:$line_num" >> /tmp/mongodb_compat_locations.txt
                             fi
                         fi
                     fi
@@ -570,9 +534,9 @@ function scan_file_for_version {
                 if [ -s /tmp/mongodb_operator_matches.txt ]; then
                     # Display with context if available
                     if [ "$has_context" = "true" ]; then
-                        echo "  Found unsupported operator: \$${operator_name} (in ${context} context) (MongoDB $version)"
+                        echo "  Found unsupported operator: \$${operator_name} (in ${context} context)"
                     else
-                        echo "  Found unsupported operator: \$${operator_name} (MongoDB $version)"
+                        echo "  Found unsupported operator: \$${operator_name}"
                     fi
                     
                     echo "    Line numbers:"
@@ -582,7 +546,7 @@ function scan_file_for_version {
         elif [ "$show_supported" = "true" ]; then
             # Check for supported operators if requested
             if grep -q "\$${operator_name}" "$file"; then
-                echo "  Found supported operator: \$${operator_name} (MongoDB $version)"
+                echo "  Found supported operator: \$${operator_name}"
             fi
         fi
     done
@@ -590,243 +554,35 @@ function scan_file_for_version {
 
 # Function to generate CSV report
 function csv_mode {
-    local mongodb_version="$1"
-    local output_file="mongodb_firestore_compatibility.csv"
+    local output_file="firestore_operator_compatibility.csv"
     
     echo "Generating CSV report: $output_file"
     
     # Create CSV header
-    if [ "$mongodb_version" = "all" ]; then
-        # Header for all versions
-        echo -n "Operator,MongoDB Version" > "$output_file"
-        for version in $MONGODB_VERSIONS; do
-            echo -n ",$version" >> "$output_file"
-        done
-        echo "" >> "$output_file"
+    echo "Operator,Firestore Support" > "$output_file"
+    
+    # Process each operator line directly
+    while IFS= read -r line; do
+        # Skip empty lines
+        if [ -z "$line" ]; then
+            continue
+        fi
         
-        # Process each operator line directly
-        while IFS= read -r line; do
-            # Skip empty lines
-            if [ -z "$line" ]; then
-                continue
-            fi
-            
-            # Extract operator (everything before the first colon)
-            local operator="${line%%:*}"
-            
-            # Find MongoDB version where this operator first appeared
-            local first_version=""
-            for version in $MONGODB_VERSIONS; do
-                if echo "$line" | grep -q "$version:"; then
-                    first_version="$version"
-                    break
-                fi
-            done
-            
-            # Write operator and its MongoDB version
-            echo -n "$operator,$first_version" >> "$output_file"
-            
-            # Add compatibility for each MongoDB version
-            for version in $MONGODB_VERSIONS; do
-                # Extract the version-specific support status using sed
-                local status=$(echo "$line" | sed -n "s/.*$version:\([^,]*\).*/\1/p")
-                
-                if [ -n "$status" ]; then
-                    echo -n ",$status" >> "$output_file"
-                else
-                    echo -n ",N/A" >> "$output_file"
-                fi
-            done
-            
-            echo "" >> "$output_file"
-        done < /tmp/mongodb_compat_clean.txt
-    else
-        # CSV for specific version
-        echo "Operator,MongoDB Version,Firestore Support" > "$output_file"
+        # Extract operator (everything before the first colon)
+        local operator="${line%%:*}"
         
-        # Process each operator line directly
-        while IFS= read -r line; do
-            # Skip empty lines
-            if [ -z "$line" ]; then
-                continue
-            fi
-            
-            # Extract operator (everything before the first colon)
-            local operator="${line%%:*}"
-            
-            # Extract support status for this version using sed
-            local status=$(echo "$line" | sed -n "s/.*$mongodb_version:\([^,]*\).*/\1/p")
-            
-            if [ -n "$status" ]; then
-                echo "$operator,$mongodb_version,$status" >> "$output_file"
-            fi
-        done < /tmp/mongodb_compat_clean.txt
-    fi
+        # Extract support status
+        local status=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
+        
+        if [ -n "$status" ]; then
+            echo "$operator,$status" >> "$output_file"
+        fi
+    done < /tmp/mongodb_compat_clean.txt
     
     echo "CSV report generated successfully."
 }
 
-# Function to show statistics
-function stats_mode {
-    local mongodb_version="$1"
-    
-    echo "MongoDB Compatibility Statistics"
-    echo "================================"
-    
-    if [ "$mongodb_version" = "all" ]; then
-        # Generate stats for all versions
-        for version in $MONGODB_VERSIONS; do
-            generate_version_stats "$version"
-        done
-        
-        # Generate comparison stats across versions
-        generate_comparison_stats
-    else
-        # Generate stats for specific version
-        generate_version_stats "$mongodb_version"
-    fi
-}
-
-# Function to generate statistics for a specific MongoDB version
-function generate_version_stats {
-    local version="$1"
-    local total_operators=0
-    local supported_operators=0
-    local unsupported_operators=0
-    local unsupported_list=""
-    
-    # Count operators for this version
-    while read -r line; do
-        # Check if this line contains the version
-        if echo "$line" | grep -q "$version:"; then
-            total_operators=$((total_operators + 1))
-            
-            # Check support status
-            if echo "$line" | grep -q "$version:Yes"; then
-                supported_operators=$((supported_operators + 1))
-            else
-                unsupported_operators=$((unsupported_operators + 1))
-                # Extract operator name for the unsupported list
-                local operator=$(echo "$line" | cut -d':' -f1)
-                unsupported_list="${unsupported_list}${operator}\n"
-            fi
-        fi
-    done < /tmp/mongodb_compat_clean.txt
-    
-    echo ""
-    echo "MongoDB $version Compatibility:"
-    echo "-----------------------------"
-    
-    # Calculate percentages
-    local support_percentage=0
-    if [ $total_operators -gt 0 ]; then
-        support_percentage=$(( (supported_operators * 100) / total_operators ))
-    fi
-    
-    # Display statistics
-    echo "Total operators: $total_operators"
-    echo "Supported operators: $supported_operators ($support_percentage%)"
-    echo "Unsupported operators: $unsupported_operators ($((100 - support_percentage))%)"
-    
-    # List unsupported operators
-    echo ""
-    echo "Unsupported operators in MongoDB $version:"
-    echo -e "$unsupported_list" | sort | uniq | while read -r operator; do
-        if [ -n "$operator" ]; then
-            echo "  $operator"
-        fi
-    done
-}
-
-# Function to generate comparison statistics across versions
-function generate_comparison_stats {
-    echo ""
-    echo "Cross-Version Compatibility Comparison:"
-    echo "-------------------------------------"
-    
-    # Get all unique operators
-    local operators=$(cut -d':' -f1 /tmp/mongodb_compat_clean.txt | sort | uniq)
-    
-    # Display compatibility matrix for operators
-    echo "Operator compatibility across versions:"
-    printf "%-20s" "Operator"
-    for version in $MONGODB_VERSIONS; do
-        printf "%-10s" "$version"
-    done
-    echo ""
-    
-    # Print separator line
-    printf "%-20s" "--------------------"
-    for version in $MONGODB_VERSIONS; do
-        printf "%-10s" "----------"
-    done
-    echo ""
-    
-    # Print each operator's compatibility
-    for operator in $operators; do
-        printf "%-20s" "$operator"
-        
-        # Get the operator line
-        local operator_line=$(grep "^${operator}:" /tmp/mongodb_compat_clean.txt)
-        
-        for version in $MONGODB_VERSIONS; do
-            # Extract the version-specific support status
-            local version_pattern="$version:[^,]*"
-            if echo "$operator_line" | grep -q "$version_pattern"; then
-                local status=$(echo "$operator_line" | grep -o "$version_pattern" | cut -d':' -f2)
-                printf "%-10s" "$status"
-            else
-                # Operator doesn't exist in this version
-                printf "%-10s" "N/A"
-            fi
-        done
-        echo ""
-    done
-    
-    # Identify operators that changed compatibility across versions
-    echo ""
-    echo "Compatibility changes across versions:"
-    
-    for operator in $operators; do
-        # Get the operator line
-        local operator_line=$(grep "^${operator}:" /tmp/mongodb_compat_clean.txt)
-        local previous_status=""
-        local has_change=false
-        
-        for version in $MONGODB_VERSIONS; do
-            # Extract the version-specific support status
-            local version_pattern="$version:[^,]*"
-            if echo "$operator_line" | grep -q "$version_pattern"; then
-                local status=$(echo "$operator_line" | grep -o "$version_pattern" | cut -d':' -f2)
-                
-                if [ -n "$previous_status" ] && [ -n "$status" ] && [ "$status" != "$previous_status" ]; then
-                    has_change=true
-                    break
-                fi
-                
-                if [ -n "$status" ]; then
-                    previous_status="$status"
-                fi
-            fi
-        done
-        
-        if [ "$has_change" = "true" ]; then
-            echo "  $operator: Changed compatibility across versions"
-            
-            for version in $MONGODB_VERSIONS; do
-                # Extract the version-specific support status
-                local version_pattern="$version:[^,]*"
-                if echo "$operator_line" | grep -q "$version_pattern"; then
-                    local status=$(echo "$operator_line" | grep -o "$version_pattern" | cut -d':' -f2)
-                    echo "    MongoDB $version: $status"
-                fi
-            done
-        fi
-    done
-}
-
 # Parse command line arguments
-MONGODB_VERSION=""
 MODE="scan"
 DIRECTORY=""
 FILE=""
@@ -838,9 +594,6 @@ SHOW_SUPPORTED="false"
 # Process arguments
 for arg in "$@"; do
     case $arg in
-        --mongodb-version=*)
-            MONGODB_VERSION="${arg#*=}"
-            ;;
         --mode=*)
             MODE="${arg#*=}"
             # Convert to lowercase without using ${var,,}
@@ -876,29 +629,6 @@ for arg in "$@"; do
     esac
 done
 
-# Validate MongoDB version
-if [ -z "$MONGODB_VERSION" ]; then
-    echo "Error: MongoDB version is required (--mongodb-version)"
-    show_usage
-    exit 1
-fi
-
-if [ "$MONGODB_VERSION" != "all" ]; then
-    version_valid=false
-    for version in $MONGODB_VERSIONS; do
-        if [ "$MONGODB_VERSION" = "$version" ]; then
-            version_valid=true
-            break
-        fi
-    done
-    
-    if [ "$version_valid" = "false" ]; then
-        echo "Error: Invalid MongoDB version: $MONGODB_VERSION"
-        echo "Supported versions: $MONGODB_VERSIONS or 'all'"
-        exit 1
-    fi
-fi
-
 # Validate mode
 case $MODE in
     scan)
@@ -914,17 +644,14 @@ case $MODE in
             exit 1
         fi
         
-        scan_mode "$DIRECTORY" "$FILE" "$MONGODB_VERSION" "$EXCLUDED_EXTENSIONS" "$INCLUDED_EXTENSIONS" "$EXCLUDED_DIRECTORIES" "$SHOW_SUPPORTED"
+        scan_mode "$DIRECTORY" "$FILE" "$EXCLUDED_EXTENSIONS" "$INCLUDED_EXTENSIONS" "$EXCLUDED_DIRECTORIES" "$SHOW_SUPPORTED"
         ;;
     csv)
-        csv_mode "$MONGODB_VERSION"
-        ;;
-    stats)
-        stats_mode "$MONGODB_VERSION"
+        csv_mode
         ;;
     *)
         echo "Error: Invalid mode: $MODE"
-        echo "Supported modes: scan, csv, stats"
+        echo "Supported modes: scan, csv"
         show_usage
         exit 1
         ;;

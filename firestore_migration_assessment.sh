@@ -11,12 +11,12 @@ DIR=""
 LOG_FILE=""
 DATA_FILE=""
 METADATA_DIR=""
-MONGODB_VERSION="all"
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
 RUN_DATATYPE=false
 RUN_OPERATOR=false
 RUN_INDEX=false
+RUN_COLLECT_SAMPLES=false
 VERBOSE=false
 QUIET=false
 
@@ -45,21 +45,22 @@ usage() {
     echo "  --log-file FILE           MongoDB log file to analyze for operator compatibility"
     echo "  --data-file FILE          JSON data file to check for data type compatibility"
     echo "  --metadata-dir DIR        Directory containing index metadata files"
-    echo "  --mongodb-version VER     MongoDB version to check against (3.6, 4.0, 5.0, 6.0, 7.0, 8.0, all)"
     echo "  --output-format FORMAT    Output format (text, json) [default: text]"
     echo "  --output-file FILE        File to write the report to [default: stdout]"
     echo "  --run-all                 Run all assessment types"
     echo "  --run-datatype            Run only datatype compatibility assessment"
     echo "  --run-operator            Run only operator compatibility assessment"
     echo "  --run-index               Run only index compatibility assessment"
+    echo "  --collect-samples         Collect sample data from MongoDB for datatype assessment"
     echo "  --verbose                 Show detailed information"
     echo "  --quiet                   Suppress progress messages and non-essential output"
     echo "  --help                    Display this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --dir /path/to/project --run-all --mongodb-version=7.0"
-    echo "  $0 --log-file logs/mongodb.log --run-operator --mongodb-version=6.0"
+    echo "  $0 --dir /path/to/project --run-all"
+    echo "  $0 --log-file logs/mongodb.log --run-operator"
     echo "  $0 --data-file data.json --run-datatype --verbose"
+    echo "  $0 --collect-samples --run-datatype"
     exit 1
 }
 
@@ -82,13 +83,13 @@ while [[ $# -gt 0 ]]; do
             METADATA_DIR="$2"
             shift 2
             ;;
-        --mongodb-version)
-            MONGODB_VERSION="$2"
-            shift 2
-            ;;
         --output-format)
             OUTPUT_FORMAT="$2"
             shift 2
+            ;;
+        --collect-samples)
+            RUN_COLLECT_SAMPLES=true
+            shift
             ;;
         --output-file)
             OUTPUT_FILE="$2"
@@ -197,7 +198,7 @@ run_operator_assessment() {
         echo "Running operator compatibility assessment..."
     fi
     
-    local operator_args="--mongodb-version=$MONGODB_VERSION --mode=scan"
+    local operator_args="--mode=scan"
     
     if [[ -n "$LOG_FILE" ]]; then
         operator_args="$operator_args --file=$LOG_FILE"
@@ -217,7 +218,7 @@ run_operator_assessment() {
     local unique_operators=$(grep "Found.*unsupported operators" "$OPERATOR_OUTPUT" | head -1 | awk '{print $2}')
     
     # Add to summary
-    echo "Operator Compatibility (MongoDB $MONGODB_VERSION):" >> "$SUMMARY_OUTPUT"
+    echo "Operator Compatibility:" >> "$SUMMARY_OUTPUT"
     echo "  Files processed: $processed_files" >> "$SUMMARY_OUTPUT"
     echo "  Unsupported operators found: $unique_operators" >> "$SUMMARY_OUTPUT"
     echo "" >> "$SUMMARY_OUTPUT"
@@ -333,7 +334,6 @@ generate_json_report() {
         local unique_operators=$(grep "Found.*unsupported operators" "$OPERATOR_OUTPUT" | head -1 | awk '{print $2}')
         
         echo "    \"operator_compatibility\": {" >> "$json_file"
-        echo "      \"mongodb_version\": \"$MONGODB_VERSION\"," >> "$json_file"
         echo "      \"files_processed\": $processed_files," >> "$json_file"
         echo "      \"unsupported_operators\": $unique_operators" >> "$json_file"
         
@@ -407,9 +407,58 @@ generate_json_report() {
     cat "$json_file"
 }
 
+# Function to collect sample data from MongoDB
+collect_sample_data() {
+    if [[ "$OUTPUT_FORMAT" == "text" && "$QUIET" == "false" ]]; then
+        echo "Collecting sample data from MongoDB..."
+    fi
+    
+    # Check if the collection script exists
+    if [[ ! -f "$SCRIPT_DIR/collect_sample_data.sh" ]]; then
+        echo "Error: Sample data collection script not found: $SCRIPT_DIR/collect_sample_data.sh"
+        return 1
+    fi
+    
+    # Make sure the script is executable
+    chmod +x "$SCRIPT_DIR/collect_sample_data.sh"
+    
+    # Run the collection script
+    "$SCRIPT_DIR/collect_sample_data.sh" > "$TEMP_DIR/sample_collection_output.txt" 2>&1
+    
+    # Check if the script ran successfully
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to collect sample data from MongoDB"
+        cat "$TEMP_DIR/sample_collection_output.txt"
+        return 1
+    fi
+    
+    # Extract summary information
+    local sample_files=$(grep "collection sample files created" "$TEMP_DIR/sample_collection_output.txt" | awk '{print $1}')
+    
+    # Add to summary
+    echo "MongoDB Sample Data Collection:" >> "$SUMMARY_OUTPUT"
+    echo "  Sample files created: $sample_files" >> "$SUMMARY_OUTPUT"
+    echo "  Output directory: sample_data" >> "$SUMMARY_OUTPUT"
+    echo "" >> "$SUMMARY_OUTPUT"
+    
+    # Set the directory for datatype assessment
+    if [[ -z "$DIR" && -z "$DATA_FILE" ]]; then
+        DIR="sample_data"
+    fi
+    
+    # Display output if not quiet
+    if [[ "$QUIET" == "false" ]]; then
+        cat "$TEMP_DIR/sample_collection_output.txt"
+    fi
+}
+
 # Run assessments
 echo "Starting Firestore Migration Assessment..." > "$SUMMARY_OUTPUT"
 echo "" >> "$SUMMARY_OUTPUT"
+
+if [[ "$RUN_COLLECT_SAMPLES" == "true" ]]; then
+    collect_sample_data
+fi
 
 if [[ "$RUN_DATATYPE" == "true" ]]; then
     run_datatype_assessment
