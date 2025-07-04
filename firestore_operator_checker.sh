@@ -17,19 +17,18 @@ function show_usage {
     echo "Usage: firestore_operator_checker.sh [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --mode=SCAN|CSV            Operation mode (default: SCAN)"
-    echo "  --dir=DIR                  Directory to scan (alias for --directory)"
-    echo "  --directory=DIR            Directory to scan"
-    echo "  --file=FILE                Specific file to scan"
-    echo "  --excluded-extensions=EXT  Comma-separated list of extensions to exclude (default: none)"
-    echo "  --included-extensions=EXT  Comma-separated list of extensions to include (default: all)"
-    echo "  --excluded-directories=DIR Comma-separated list of directories to exclude (default: none)"
+    echo "  --mode SCAN|CSV            Operation mode (default: SCAN)"
+    echo "  --dir DIR                  Directory to scan"
+    echo "  --file FILE                Specific file to scan"
+    echo "  --excluded-extensions EXT  Comma-separated list of extensions to exclude (default: none)"
+    echo "  --included-extensions EXT  Comma-separated list of extensions to include (default: all)"
+    echo "  --excluded-directories DIR Comma-separated list of directories to exclude (default: none)"
     echo "  --show-supported           Show supported operators in report"
     echo "  --help                     Display this help message"
     echo ""
     echo "Examples:"
-    echo "  ./firestore_operator_checker.sh --mode=scan --dir=./src"
-    echo "  ./firestore_operator_checker.sh --mode=csv"
+    echo "  ./firestore_operator_checker.sh --mode scan --dir ./src"
+    echo "  ./firestore_operator_checker.sh --mode csv"
 }
 
 # Function to check if an operator is supported
@@ -238,8 +237,7 @@ function scan_file_for_operators {
                         echo "      Line $line_num: $line_content"
                     fi
                     
-                    # Store this line number to exclude it from unsupported operators
-                    echo "$line_num" >> /tmp/mongodb_excluded_lines.txt
+                    # Note: Line exclusion removed to allow multiple operators per line
                 fi
             done
         fi
@@ -277,55 +275,13 @@ function scan_file_for_operators {
                         echo "      Line $line_num: $line_content"
                     fi
                     
-                    # Store this line number to exclude it from unsupported operators
-                    echo "$line_num" >> /tmp/mongodb_excluded_lines.txt
+                    # Note: Line exclusion removed to allow multiple operators per line
                 fi
             done
         fi
     fi
     
-    # Special handling for $slice in projection context
-    # Check if $slice:projection is supported
-    local slice_projection_support=$(grep "^\$slice:projection:" /tmp/mongodb_compat_clean.txt | cut -d':' -f2 | tr -d ' ')
-    if [ "$slice_projection_support" = "Yes" ]; then
-        # Look for $slice in projection context
-        if grep -q "\$slice" "$file"; then
-            # Get the line numbers of all lines containing $slice
-            grep -n "\$slice" "$file" | while read -r match; do
-                local line_num=$(echo "$match" | cut -d':' -f1)
-                local line_content=$(echo "$match" | cut -d':' -f2-)
-                
-                # Skip comment lines
-                if echo "$line_content" | grep -q "^[[:space:]]*//"; then
-                    continue
-                fi
-                
-                # Check if this is in a projection context
-                # Look for find, project, or projection keywords in the surrounding context (10 lines before)
-                local context_before=$(head -n "$line_num" "$file" | tail -n 10)
-                
-                # First check if this is in an update context (which takes precedence)
-                if echo "$context_before" | grep -q -E "update\(|updateOne\(|updateMany\(|findAndModify"; then
-                    # This is likely in an update context, not a projection context
-                    continue
-                # Check if this is inside a $push operator (nested context)
-                elif echo "$line_content" | grep -q -E "\$push.*\$slice|\{\s*\$each.*\$slice"; then
-                    # This is $slice inside $push, which is in update context
-                    continue
-                # Now check for projection context
-                elif echo "$context_before" | grep -q -E "find\(|project|projection|\$project"; then
-                    # This is a $slice in projection context, which is supported
-                    if [ "$show_supported" = "true" ]; then
-                        echo "  Found supported operator: \$slice (in projection context)"
-                        echo "      Line $line_num: $line_content"
-                    fi
-                    
-                    # Store this line number to exclude it from unsupported operators
-                    echo "$line_num" >> /tmp/mongodb_excluded_lines.txt
-                fi
-            done
-        fi
-    fi
+    # Remove special handling for $slice - let the main loop handle it with proper context detection
     
     # Special handling for $[] operator (all positional operator)
     # Check if $[] is supported
@@ -383,32 +339,46 @@ function scan_file_for_operators {
         fi
     fi
     
-    # Get all MongoDB operators
-    cat /tmp/mongodb_compat_clean.txt | while read -r line; do
-        # Extract full operator (including any context tag)
-        local full_operator=$(echo "$line" | cut -d':' -f1)
-        
-        # Check if this is an operator with context tag
+    # Process operators by reading the compatibility data into an array to avoid nested while loops
+    local operators_data=()
+    while IFS= read -r line; do
+        operators_data+=("$line")
+    done < /tmp/mongodb_compat_clean.txt
+    
+    # Now process each operator
+    for line in "${operators_data[@]}"; do
+        # Parse the line to extract operator and support status
+        # Handle both formats: "$operator: status" and "$operator:context: status"
+        local full_operator=""
+        local support=""
         local has_context=false
         local context=""
         local base_operator=""
-        if [[ "$full_operator" == *":"* ]]; then
-            has_context=true
-            context=$(echo "$full_operator" | cut -d':' -f2)
-            # Extract base operator without context
-            base_operator=$(echo "$full_operator" | cut -d':' -f1)
-        else
-            # No context tag
+        
+        # Count colons to determine format
+        local colon_count=$(echo "$line" | tr -cd ':' | wc -c)
+        
+        if [ "$colon_count" -eq 1 ]; then
+            # Format: "$operator: status"
+            full_operator=$(echo "$line" | cut -d':' -f1)
+            support=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
             base_operator="$full_operator"
+        elif [ "$colon_count" -eq 2 ]; then
+            # Format: "$operator:context: status"
+            full_operator=$(echo "$line" | cut -d':' -f1-2)
+            support=$(echo "$line" | cut -d':' -f3 | tr -d ' ')
+            has_context=true
+            base_operator=$(echo "$full_operator" | cut -d':' -f1)
+            context=$(echo "$full_operator" | cut -d':' -f2)
+        else
+            # Skip malformed lines
+            continue
         fi
         
         # Skip $sort:stage as we've already handled it specially
         if [ "$base_operator" = "\$sort" ] && [ "$context" = "stage" ]; then
             continue
         fi
-        
-        # Extract support status
-        local support=$(echo "$line" | cut -d':' -f2 | tr -d ' ')
         
         # Skip if support status couldn't be determined
         if [ -z "$support" ]; then
@@ -463,9 +433,9 @@ function scan_file_for_operators {
                         local verification_pattern="[^a-zA-Z0-9_]\\\$${operator_name}[^a-zA-Z0-9_]|^\\\$${operator_name}[^a-zA-Z0-9_]|[^a-zA-Z0-9_]\\\$${operator_name}$"
                         local context_match=true
                         
-                        # Check if this line is in our excluded list
-                        if grep -q "^$line_num$" /tmp/mongodb_excluded_lines.txt; then
-                            # This line is excluded (either a comment or a supported operator in context)
+                        # Check if this line is in our excluded list (only for comment lines)
+                        if grep -q "^$line_num$" /tmp/mongodb_excluded_lines.txt && echo "$line_content" | grep -q "^[[:space:]]*//"; then
+                            # This line is excluded because it's a comment line
                             context_match=false
                         fi
                         
@@ -474,16 +444,50 @@ function scan_file_for_operators {
                         if [ "$has_context" = "true" ]; then
                             # Special handling for $sort operator
                             if [ "$operator_name" = "sort" ]; then
+                                # Get surrounding context (10 lines before current line)
+                                local context_before=$(head -n "$line_num" "$file" | tail -n 10)
+                                
                                 # Check if this is in an aggregation pipeline context
-                                if echo "$line_content" | grep -q -E "aggregate|pipeline|\$match|\$group|\$project|\$limit"; then
+                                if echo "$line_content" | grep -q -E "aggregate|pipeline|\$match|\$group|\$project|\$limit" || echo "$context_before" | grep -q -E "aggregate|pipeline|\$match|\$group|\$project"; then
                                     # This is a $sort in aggregation context, should match $sort:stage
                                     if [ "$context" != "stage" ]; then
                                         context_match=false
                                     fi
-                                # Check if this is in an update context
-                                elif echo "$line_content" | grep -q -E "update|findAndModify|\$push"; then
+                                # Check if this is in an update context (including inside $push)
+                                elif echo "$line_content" | grep -q -E "update|findAndModify" || echo "$line_content" | grep -q '\$push' || echo "$line_content" | grep -q '\$each' || echo "$context_before" | grep -q -E "update|findAndModify|\$push|\$each"; then
                                     # This is a $sort in update context, should match $sort:update
-                                    if [ "$context" != "update" ]; then
+                                    if [ "$context" = "update" ]; then
+                                        context_match=true
+                                    else
+                                        context_match=false
+                                    fi
+                                else
+                                    # If we can't determine the context, default to not matching
+                                    context_match=false
+                                fi
+                            # Special handling for $slice operator
+                            elif [ "$operator_name" = "slice" ]; then
+                                # Get surrounding context (10 lines before current line)
+                                local context_before=$(head -n "$line_num" "$file" | tail -n 10)
+                                
+                                # Check if this is in a projection context
+                                if echo "$line_content" | grep -q -E "find\s*\(.*\{.*\$slice|project.*\$slice|\$project.*\$slice" || echo "$context_before" | grep -q -E "find\s*\(|project|\$project"; then
+                                    # This is a $slice in projection context, should match $slice:projection
+                                    if [ "$context" != "projection" ]; then
+                                        context_match=false
+                                    fi
+                                # Check if this is in an update context (including inside $push)
+                                elif echo "$line_content" | grep -q -E "update|findAndModify" || echo "$line_content" | grep -q '\$push' || echo "$line_content" | grep -q '\$each' || echo "$context_before" | grep -q -E "update|findAndModify|\$push|\$each"; then
+                                    # This is a $slice in update context, should match $slice:update
+                                    if [ "$context" = "update" ]; then
+                                        context_match=true
+                                    else
+                                        context_match=false
+                                    fi
+                                # Check if this is in an aggregation context
+                                elif echo "$line_content" | grep -q -E "aggregate|pipeline|\$match|\$group|\$project" || echo "$context_before" | grep -q -E "aggregate|pipeline|\$match|\$group|\$project"; then
+                                    # This is a $slice in aggregation context, should match $slice:aggregation
+                                    if [ "$context" != "aggregation" ]; then
                                         context_match=false
                                     fi
                                 else
@@ -493,8 +497,8 @@ function scan_file_for_operators {
                             # Handle other context-specific operators
                             elif [ "$context" = "update" ]; then
                                 # Check if this is in an update context
-                                # Look for update patterns like updateOne, updateMany, update, etc.
-                                if ! echo "$line_content" | grep -q -E "update|findAndModify|\$set|\$push|\$pull|\$addToSet"; then
+                                # Look for update patterns like updateOne, updateMany, update, etc., or if it's inside $push
+                                if ! echo "$line_content" | grep -q -E "update|findAndModify|\$set|\$push|\$pull|\$addToSet|\$each"; then
                                     context_match=false
                                 fi
                             elif [ "$context" = "projection" ]; then
@@ -592,37 +596,70 @@ EXCLUDED_DIRECTORIES="none"
 SHOW_SUPPORTED="false"
 
 # Process arguments
-for arg in "$@"; do
-    case $arg in
+while [[ $# -gt 0 ]]; do
+    case $1 in
         --mode=*)
-            MODE="${arg#*=}"
+            MODE="${1#*=}"
             # Convert to lowercase without using ${var,,}
             MODE=$(echo "$MODE" | tr '[:upper:]' '[:lower:]')
+            shift
+            ;;
+        --mode)
+            MODE="$2"
+            # Convert to lowercase without using ${var,,}
+            MODE=$(echo "$MODE" | tr '[:upper:]' '[:lower:]')
+            shift 2
             ;;
         --directory=*|--dir=*)
-            DIRECTORY="${arg#*=}"
+            DIRECTORY="${1#*=}"
+            shift
+            ;;
+        --directory|--dir)
+            DIRECTORY="$2"
+            shift 2
             ;;
         --file=*)
-            FILE="${arg#*=}"
+            FILE="${1#*=}"
+            shift
+            ;;
+        --file)
+            FILE="$2"
+            shift 2
             ;;
         --excluded-extensions=*)
-            EXCLUDED_EXTENSIONS="${arg#*=}"
+            EXCLUDED_EXTENSIONS="${1#*=}"
+            shift
+            ;;
+        --excluded-extensions)
+            EXCLUDED_EXTENSIONS="$2"
+            shift 2
             ;;
         --included-extensions=*)
-            INCLUDED_EXTENSIONS="${arg#*=}"
+            INCLUDED_EXTENSIONS="${1#*=}"
+            shift
+            ;;
+        --included-extensions)
+            INCLUDED_EXTENSIONS="$2"
+            shift 2
             ;;
         --excluded-directories=*)
-            EXCLUDED_DIRECTORIES="${arg#*=}"
+            EXCLUDED_DIRECTORIES="${1#*=}"
+            shift
+            ;;
+        --excluded-directories)
+            EXCLUDED_DIRECTORIES="$2"
+            shift 2
             ;;
         --show-supported)
             SHOW_SUPPORTED="true"
+            shift
             ;;
         --help)
             show_usage
             exit 0
             ;;
         *)
-            echo "Unknown option: $arg"
+            echo "Unknown option: $1"
             show_usage
             exit 1
             ;;

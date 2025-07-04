@@ -5,17 +5,45 @@
  * in a MongoDB instance and outputs them in a flat list format as JSON only.
  * 
  * Usage from command line:
- * mongosh --quiet --file export_index.js > indexes_output.json
+ * mongosh --quiet --file export_index.js > indexes.metadata.json
+ * 
+ * With authentication:
+ * mongosh --quiet --eval "const URI='mongodb://username:password@host:port/database'" --file export_index.js > indexes.metadata.json
  */
 
-// Initialize the result object with an empty indexes array
+// Initialize the result object with metadata and an empty indexes array
 var result = {
+    metadata: {
+        timestamp: new Date().toISOString(),
+        source: "MongoDB"
+    },
     options: {},
     indexes: []
 };
 
+// Check if a URI was provided via command line
+// The URI can be passed using --eval "const URI='mongodb://username:password@host:port/database'"
+var mongoClient;
+var mongoDb;
+
+try {
+    if (typeof URI !== 'undefined' && URI) {
+        // Use the Mongo constructor to create a new client with the URI
+        mongoClient = new Mongo(URI);
+        // Get the database from the client
+        mongoDb = mongoClient.getDB("");
+    } else {
+        // Use the default connection
+        mongoDb = db;
+    }
+} catch (err) {
+    print(`Error connecting to MongoDB: ${err.message}`);
+    // Exit with error
+    quit(1);
+}
+
 // Get all databases (excluding admin, local, and config)
-var dbs = db.adminCommand('listDatabases').databases
+var dbs = mongoDb.adminCommand('listDatabases').databases
     .filter(function(d) {
         return !['admin', 'local', 'config'].includes(d.name);
     })
@@ -26,7 +54,7 @@ var dbs = db.adminCommand('listDatabases').databases
 // Process each database
 dbs.forEach(function(dbName) {
     // Switch to this database
-    var currentDb = db.getSiblingDB(dbName);
+    var currentDb = mongoDb.getSiblingDB(dbName);
     
     // Get all collections (excluding system collections)
     var collections = currentDb.getCollectionNames()
@@ -56,3 +84,8 @@ dbs.forEach(function(dbName) {
 
 // Output only the JSON result
 print(JSON.stringify(result, null, 2));
+
+// Close the client connection if we created one
+if (mongoClient && typeof URI !== 'undefined' && URI) {
+    mongoClient.close();
+}

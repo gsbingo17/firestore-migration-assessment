@@ -13,21 +13,23 @@ fi
 DEBUG=false
 DIR=""
 FILE=""
-SHOW_ISSUES=false
-SHOW_COMPATIBLE=false
 SUMMARY=true
 SUPPORT_2DSPHERE=false
-QUIET=false
 
-# Unsupported features
-UNSUPPORTED_INDEX_TYPES=("2d" "2dsphere" "hashed")
-UNSUPPORTED_INDEX_OPTIONS=("storageEngine" "collation" "dropDuplicates")
+# Unsupported index types (detected in key values or structure)
+UNSUPPORTED_INDEX_TYPES=("2d" "2dsphere" "hashed" "text")
+
+# Unsupported index options/features (detected in index properties)
+UNSUPPORTED_INDEX_OPTIONS=("storageEngine" "dropDuplicates" 
+                          "unique" "expireAfterSeconds" "partialFilterExpression"
+                          "hidden" "case_insensitive" "wildcard" "vector")
+
+# Unsupported collection options
 UNSUPPORTED_COLLECTION_OPTIONS=("capped")
 
 # Temporary files
 TEMP_DIR=$(mktemp -d)
 ISSUES_FILE="$TEMP_DIR/issues.json"
-COMPATIBLE_FILE="$TEMP_DIR/compatible.json"
 SUMMARY_FILE="$TEMP_DIR/summary.txt"
 UNSUPPORTED_INDEXES_FILE="$TEMP_DIR/unsupported_indexes.txt"
 UNIQUE_INDEXES_FILE="$TEMP_DIR/unique_indexes.txt"
@@ -47,10 +49,7 @@ usage() {
     echo "  --debug                Output debugging information"
     echo "  --dir DIR              Directory containing metadata files to check"
     echo "  --file FILE            Single metadata file to check"
-    echo "  --show-issues          Show detailed compatibility issues"
-    echo "  --show-compatible      Show compatible indexes only"
     echo "  --summary              Show a summary of compatibility statistics (default)"
-    echo "  --quiet                Suppress progress messages"
     echo "  --help                 Show this help message"
     exit 1
 }
@@ -66,26 +65,20 @@ while [[ $# -gt 0 ]]; do
             DIR="$2"
             shift 2
             ;;
+        --dir=*)
+            DIR="${1#*=}"
+            shift
+            ;;
         --file)
             FILE="$2"
             shift 2
             ;;
-        --show-issues)
-            SHOW_ISSUES=true
-            SUMMARY=false
-            shift
-            ;;
-        --show-compatible)
-            SHOW_COMPATIBLE=true
-            SUMMARY=false
+        --file=*)
+            FILE="${1#*=}"
             shift
             ;;
         --summary)
             SUMMARY=true
-            shift
-            ;;
-        --quiet)
-            QUIET=true
             shift
             ;;
         --help)
@@ -121,23 +114,46 @@ debug() {
     fi
 }
 
-# Initialize counters
+# Initialize counters for each type and option
 total_indexes=0
 incompatible_indexes=0
-unsupported_types=()
-unique_indexes=0
-text_indexes=0
-ttl_indexes=0
-partial_indexes=0
+
+# Initialize individual counters for backward compatibility
+count_2d=0
+count_2dsphere=0
+count_hashed=0
+count_text=0
+count_storageEngine=0
+count_collation=0
+count_dropDuplicates=0
+count_unique=0
+count_expireAfterSeconds=0
+count_partialFilterExpression=0
+count_hidden=0
+count_case_insensitive=0
+count_wildcard=0
+count_vector=0
 
 # Initialize JSON files
 echo "{}" > "$ISSUES_FILE"
-echo "{}" > "$COMPATIBLE_FILE"
-echo "" > "$UNSUPPORTED_INDEXES_FILE"
-echo "" > "$UNIQUE_INDEXES_FILE"
+
+# Create tracking files for each type and option
+for type in "${UNSUPPORTED_INDEX_TYPES[@]}"; do
+    touch "$TEMP_DIR/${type}_indexes.txt"
+done
+
+for option in "${UNSUPPORTED_INDEX_OPTIONS[@]}"; do
+    touch "$TEMP_DIR/${option}_indexes.txt"
+done
+
+# Legacy file names for backward compatibility
+UNSUPPORTED_INDEXES_FILE="$TEMP_DIR/unsupported_indexes.txt"
+UNIQUE_INDEXES_FILE="$TEMP_DIR/unique_indexes.txt"
 TEXT_INDEXES_FILE="$TEMP_DIR/text_indexes.txt"
 TTL_INDEXES_FILE="$TEMP_DIR/ttl_indexes.txt"
 PARTIAL_INDEXES_FILE="$TEMP_DIR/partial_indexes.txt"
+echo "" > "$UNSUPPORTED_INDEXES_FILE"
+echo "" > "$UNIQUE_INDEXES_FILE"
 echo "" > "$TEXT_INDEXES_FILE"
 echo "" > "$TTL_INDEXES_FILE"
 echo "" > "$PARTIAL_INDEXES_FILE"
@@ -162,6 +178,199 @@ contains_element() {
         fi
     done
     return 1
+}
+
+# Unified function to process a single index
+process_index() {
+    local index="$1"
+    local db_name="$2"
+    local collection_name="$3"
+    local namespace="$4"
+    
+    local index_name=$(jq -r '.name' <<< "$index")
+    local has_issue=false
+    
+    debug "  Processing index: $index_name"
+    
+    # Get the correct namespace from the index if available
+    local index_ns=$(jq -r '.ns // ""' <<< "$index")
+    if [[ -n "$index_ns" ]]; then
+        namespace="$index_ns"
+    fi
+    
+    # Check for unsupported index types in key values
+    local keys=$(jq -r '.key | to_entries[] | "\(.key):\(.value)"' <<< "$index")
+    debug "    Index key-value pairs for $index_name: $keys"
+    
+    while IFS= read -r key_value; do
+        IFS=':' read -r key_name key_type <<< "$key_value"
+        debug "      Key: $key_name, Type: $key_type"
+        
+        # Special handling for text indexes
+        if [[ "$key_name" == "_fts" && ("$key_type" == "\"text\"" || "$key_type" == "text") ]]; then
+            has_issue=true
+            local type="text"
+            count_text=$((count_text + 1))
+            echo "${namespace}.${index_name}" >> "$TEXT_INDEXES_FILE"  # Use legacy file for consistency
+            
+            # Add to issues file
+            jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" \
+               --arg type "$type" \
+               '. + {($db): {($coll): {($idx): {"unsupported_index_type": $type}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
+            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
+            
+            debug "      Found text index: $index_name"
+            continue
+        fi
+        
+        # Check other index types
+        for type in "${UNSUPPORTED_INDEX_TYPES[@]}"; do
+            # Skip text as it's handled separately
+            if [[ "$type" == "text" ]]; then
+                continue
+            fi
+            
+            debug "        Checking against unsupported type: $type"
+            if [[ "$key_type" == "\"$type\"" || "$key_type" == "$type" ]]; then
+                debug "        MATCH FOUND: $key_type is an unsupported type ($type)"
+                has_issue=true
+                
+                # Increment appropriate counter
+                case "$type" in
+                    "2d") count_2d=$((count_2d + 1)) ;;
+                    "2dsphere") count_2dsphere=$((count_2dsphere + 1)) ;;
+                    "hashed") count_hashed=$((count_hashed + 1)) ;;
+                esac
+                
+                echo "${namespace}.${index_name}" >> "$TEMP_DIR/${type}_indexes.txt"
+                echo "${namespace}.${index_name}:${type}" >> "$UNSUPPORTED_INDEXES_FILE"  # Legacy compatibility
+                
+                # Add to issues file
+                jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" \
+                   --arg type "$type" \
+                   '. + {($db): {($coll): {($idx): {"unsupported_index_type": $type}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
+                mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
+                
+                debug "        Added $type index $index_name to issues file"
+                break
+            fi
+        done
+    done <<< "$keys"
+    
+    # Check for unsupported index options
+    for option in "${UNSUPPORTED_INDEX_OPTIONS[@]}"; do
+        local option_found=false
+        
+        case "$option" in
+            "unique")
+                if jq -e '.unique == true' <<< "$index" > /dev/null; then
+                    option_found=true
+                fi
+                ;;
+                
+            "expireAfterSeconds")
+                if jq -e '.expireAfterSeconds != null' <<< "$index" > /dev/null; then
+                    option_found=true
+                fi
+                ;;
+                
+            "partialFilterExpression")
+                if jq -e '.partialFilterExpression != null' <<< "$index" > /dev/null; then
+                    option_found=true
+                fi
+                ;;
+                
+            "hidden")
+                if jq -e '.hidden == true' <<< "$index" > /dev/null; then
+                    option_found=true
+                fi
+                ;;
+                
+            "case_insensitive")
+                if jq -e '.collation != null and (.collation.strength == 1 or .collation.strength == 2)' <<< "$index" > /dev/null; then
+                    option_found=true
+                fi
+                ;;
+                
+            "wildcard")
+                # Check for wildcard pattern in key names
+                local has_wildcard=false
+                local wildcard_keys=$(jq -r '.key | to_entries[] | "\(.key)"' <<< "$index")
+                while IFS= read -r key_name; do
+                    if [[ "$key_name" == "\$**" || "$key_name" == *".\$**" ]]; then
+                        has_wildcard=true
+                        break
+                    fi
+                done <<< "$wildcard_keys"
+                
+                if [[ "$has_wildcard" == "true" ]]; then
+                    option_found=true
+                fi
+                ;;
+                
+            "vector")
+                if jq -e '.type == "search" and .["$**"].vector != null' <<< "$index" > /dev/null; then
+                    option_found=true
+                fi
+                ;;
+                
+            *)
+                # Standard option check
+                if jq -e --arg opt "$option" '.[$opt] != null' <<< "$index" > /dev/null; then
+                    option_found=true
+                fi
+                ;;
+        esac
+        
+        if [[ "$option_found" == "true" ]]; then
+            has_issue=true
+            
+            # Increment appropriate counter
+            case "$option" in
+                "storageEngine") count_storageEngine=$((count_storageEngine + 1)) ;;
+                "collation") count_collation=$((count_collation + 1)) ;;
+                "dropDuplicates") count_dropDuplicates=$((count_dropDuplicates + 1)) ;;
+                "unique") count_unique=$((count_unique + 1)) ;;
+                "expireAfterSeconds") count_expireAfterSeconds=$((count_expireAfterSeconds + 1)) ;;
+                "partialFilterExpression") count_partialFilterExpression=$((count_partialFilterExpression + 1)) ;;
+                "hidden") count_hidden=$((count_hidden + 1)) ;;
+                "case_insensitive") count_case_insensitive=$((count_case_insensitive + 1)) ;;
+                "wildcard") count_wildcard=$((count_wildcard + 1)) ;;
+                "vector") count_vector=$((count_vector + 1)) ;;
+            esac
+            
+            # Write to tracking files
+            case "$option" in
+                "unique")
+                    echo "${namespace}.${index_name}" >> "$UNIQUE_INDEXES_FILE"
+                    ;;
+                "expireAfterSeconds")
+                    echo "${namespace}.${index_name}" >> "$TTL_INDEXES_FILE"
+                    ;;
+                "partialFilterExpression")
+                    echo "${namespace}.${index_name}" >> "$PARTIAL_INDEXES_FILE"
+                    ;;
+                *)
+                    echo "${namespace}.${index_name}" >> "$TEMP_DIR/${option}_indexes.txt"
+                    ;;
+            esac
+            
+            # Add to issues file
+            jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" \
+               --arg option "$option" \
+               '. + {($db): {($coll): {($idx): {"unsupported_index_option": $option}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
+            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
+            
+            debug "      Found $option option in index: $index_name"
+        fi
+    done
+    
+    # Return whether this index has issues
+    if [[ "$has_issue" == "true" ]]; then
+        return 1
+    else
+        return 0
+    fi
 }
 
 # Process each metadata file
@@ -212,172 +421,8 @@ process_metadata_file() {
         
         
         
-        # Check for unsupported index options
-        for option in "${UNSUPPORTED_INDEX_OPTIONS[@]}"; do
-            if jq -e --arg opt "$option" '.[$opt] != null' <<< "$index" > /dev/null; then
-                jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" --arg opt "$option" \
-                   '. + {($db): {($coll): {($idx): {"unsupported_index_options": [$opt]}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-                mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-            fi
-        done
-        
-        # Check for unique indexes
-        if jq -e '.unique == true' <<< "$index" > /dev/null; then
-            debug "    Found unique index: $index_name"
-            unique_indexes=$((unique_indexes + 1))
-            
-            # Add to unique indexes file
-            echo "${namespace}.${index_name}" >> "$UNIQUE_INDEXES_FILE"
-            
-            # Create a new issues file with the updated content
-            debug "    Adding unique index $index_name to issues file"
-            
-            # Create a temporary JSON file with the new issue
-            echo "{\"$db_name\":{\"$collection_name\":{\"$index_name\":{\"unsupported_features\":\"unique\"}}}}" > "$TEMP_DIR/new_issue.json"
-            
-            # Merge the existing issues file with the new issue
-            jq -s '.[0] * .[1]' "$ISSUES_FILE" "$TEMP_DIR/new_issue.json" > "$TEMP_DIR/temp.json"
-            
-            # Replace the issues file with the merged content
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-            
-            debug "    Successfully updated issues file"
-        fi
-        
-        # Check for text indexes
-        if jq -e '.key._fts == "text"' <<< "$index" > /dev/null; then
-            debug "    Found text index: $index_name"
-            text_indexes=$((text_indexes + 1))
-            
-            # Get the correct namespace from the index
-            local index_ns=$(jq -r '.ns // ""' <<< "$index")
-            if [[ -n "$index_ns" ]]; then
-                namespace="$index_ns"
-            fi
-            
-            # Add to text indexes file
-            echo "${namespace}.${index_name}" >> "$TEXT_INDEXES_FILE"
-            
-            # Create a new issues file with the updated content
-            debug "    Adding text index $index_name to issues file"
-            
-            # Create a temporary JSON file with the new issue
-            echo "{\"$db_name\":{\"$collection_name\":{\"$index_name\":{\"unsupported_features\":\"text\"}}}}" > "$TEMP_DIR/new_issue.json"
-            
-            # Merge the existing issues file with the new issue
-            jq -s '.[0] * .[1]' "$ISSUES_FILE" "$TEMP_DIR/new_issue.json" > "$TEMP_DIR/temp.json"
-            
-            # Replace the issues file with the merged content
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-            
-            debug "    Successfully updated issues file"
-        fi
-        
-        # Check for TTL indexes
-        if jq -e '.expireAfterSeconds != null' <<< "$index" > /dev/null; then
-            debug "    Found TTL index: $index_name"
-            ttl_indexes=$((ttl_indexes + 1))
-            
-            # Get the correct namespace from the index
-            local index_ns=$(jq -r '.ns // ""' <<< "$index")
-            if [[ -n "$index_ns" ]]; then
-                namespace="$index_ns"
-            fi
-            
-            # Add to TTL indexes file
-            echo "${namespace}.${index_name}" >> "$TTL_INDEXES_FILE"
-            
-            # Create a new issues file with the updated content
-            debug "    Adding TTL index $index_name to issues file"
-            
-            # Create a temporary JSON file with the new issue
-            echo "{\"$db_name\":{\"$collection_name\":{\"$index_name\":{\"unsupported_features\":\"ttl\"}}}}" > "$TEMP_DIR/new_issue.json"
-            
-            # Merge the existing issues file with the new issue
-            jq -s '.[0] * .[1]' "$ISSUES_FILE" "$TEMP_DIR/new_issue.json" > "$TEMP_DIR/temp.json"
-            
-            # Replace the issues file with the merged content
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-            
-            debug "    Successfully updated issues file"
-        fi
-        
-        # Check for partial indexes
-        if jq -e '.partialFilterExpression != null' <<< "$index" > /dev/null; then
-            debug "    Found partial index: $index_name"
-            partial_indexes=$((partial_indexes + 1))
-            
-            # Get the correct namespace from the index
-            local index_ns=$(jq -r '.ns // ""' <<< "$index")
-            if [[ -n "$index_ns" ]]; then
-                namespace="$index_ns"
-            fi
-            
-            # Add to partial indexes file
-            echo "${namespace}.${index_name}" >> "$PARTIAL_INDEXES_FILE"
-            
-            # Create a new issues file with the updated content
-            debug "    Adding partial index $index_name to issues file"
-            
-            # Create a temporary JSON file with the new issue
-            echo "{\"$db_name\":{\"$collection_name\":{\"$index_name\":{\"unsupported_features\":\"partial\"}}}}" > "$TEMP_DIR/new_issue.json"
-            
-            # Merge the existing issues file with the new issue
-            jq -s '.[0] * .[1]' "$ISSUES_FILE" "$TEMP_DIR/new_issue.json" > "$TEMP_DIR/temp.json"
-            
-            # Replace the issues file with the merged content
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-            
-            debug "    Successfully updated issues file"
-        fi
-        
-        # Check for unsupported index types
-        local has_unsupported_type=false
-        local unsupported_type=""
-        
-        # Extract key-value pairs from the index key
-        local keys=$(jq -r '.key | to_entries[] | "\(.key):\(.value)"' <<< "$index")
-        debug "Index key-value pairs for $index_name: $keys"
-        
-        while IFS= read -r key_value; do
-            IFS=':' read -r key_name key_type <<< "$key_value"
-            debug "  Key: $key_name, Type: $key_type"
-            
-            # Check if key type is an unsupported index type
-            for type in "${UNSUPPORTED_INDEX_TYPES[@]}"; do
-                debug "    Checking against unsupported type: $type"
-                if [[ "$key_type" == "\"$type\"" || "$key_type" == "$type" ]]; then
-                    debug "    MATCH FOUND: $key_type is an unsupported type ($type)"
-                    has_unsupported_type=true
-                    unsupported_type="$type"
-                    
-                    # Add to unique unsupported types list
-                    if ! contains_element "$type" "${unsupported_types[@]}"; then
-                        unsupported_types+=("$type")
-                    fi
-                    
-                    # Add to unsupported indexes file
-                    echo "${namespace}.${index_name}:${type}" >> "$UNSUPPORTED_INDEXES_FILE"
-                    
-                    # Create a new issues file with the updated content
-                    debug "    Adding $type index $index_name to issues file"
-                    
-                    # Create a temporary JSON file with the new issue
-                    echo "{\"$db_name\":{\"$collection_name\":{\"$index_name\":{\"unsupported_index_types\":\"$type\"}}}}" > "$TEMP_DIR/new_issue.json"
-                    
-                    # Merge the existing issues file with the new issue
-                    jq -s '.[0] * .[1]' "$ISSUES_FILE" "$TEMP_DIR/new_issue.json" > "$TEMP_DIR/temp.json"
-                    
-                    # Replace the issues file with the merged content
-                    mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-                    
-                    debug "    Successfully updated issues file"
-                    
-                    break
-                fi
-            done
-            
-        done <<< "$keys"
+        # Process this index using unified approach
+        process_index "$index" "$db_name" "$collection_name" "$namespace"
         
         # Count incompatible indexes
         if jq -e --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" \
@@ -389,42 +434,10 @@ process_metadata_file() {
         fi
     done
     
-    # Add to compatible file if needed
-    if [[ "$SHOW_COMPATIBLE" == "true" ]]; then
-        # Create a temporary file with the full metadata
-        jq --arg db "$db_name" --arg coll "$collection_name" --arg file "$file" \
-           '. + {($db): {($coll): {"filepath": $file, "indexes": {}, "options": {}}}}' "$COMPATIBLE_FILE" > "$TEMP_DIR/temp_compatible.json"
-        mv "$TEMP_DIR/temp_compatible.json" "$COMPATIBLE_FILE"
-        
-        # Add each compatible index
-        for i in $(seq 0 $((index_count - 1))); do
-            local index=$(jq -r ".indexes[$i]" "$file")
-            local index_name=$(jq -r '.name' <<< "$index")
-            
-            # Check if this index has issues
-            if ! jq -e --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" \
-                '.[$db][$coll][$idx] != null' "$ISSUES_FILE" > /dev/null; then
-                # This index is compatible, add it to the compatible file
-                jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" --argjson index "$index" \
-                   '.[$db][$coll].indexes += {($idx): $index}' "$COMPATIBLE_FILE" > "$TEMP_DIR/temp_compatible.json"
-                mv "$TEMP_DIR/temp_compatible.json" "$COMPATIBLE_FILE"
-            fi
-        done
-        
-        # Add options if present
-        local options=$(jq -r '.options // {}' "$file")
-        if [[ "$options" != "{}" ]]; then
-            jq --arg db "$db_name" --arg coll "$collection_name" --argjson opts "$options" \
-               '.[$db][$coll].options = $opts' "$COMPATIBLE_FILE" > "$TEMP_DIR/temp_compatible.json"
-            mv "$TEMP_DIR/temp_compatible.json" "$COMPATIBLE_FILE"
-        fi
-    fi
 }
 
 # Main execution
-if [[ "$QUIET" == "false" ]]; then
-    echo "Checking index compatibility with Firestore..."
-fi
+echo "Checking index compatibility with Firestore..."
 
 metadata_files=$(find_metadata_files)
 
@@ -458,93 +471,164 @@ if [[ "$SUMMARY" == "true" ]]; then
     echo "Compatible indexes: $compatible_indexes ($compatible_percent%)" >> "$SUMMARY_FILE"
     echo "Incompatible indexes: $incompatible_indexes ($incompatible_percent%)" >> "$SUMMARY_FILE"
     
-    if [[ $unique_indexes -gt 0 ]]; then
+    # Report on unsupported index types
+    if [[ $count_2d -gt 0 ]]; then
         echo "" >> "$SUMMARY_FILE"
-        echo "Unique indexes found: $unique_indexes" >> "$SUMMARY_FILE"
+        echo "2d indexes found: $count_2d" >> "$SUMMARY_FILE"
         echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        
-        # Get affected unique indexes
         while read -r line; do
-            if [[ -n "$line" ]]; then  # Only process non-empty lines
+            if [[ -n "$line" ]]; then
                 echo "    * $line" >> "$SUMMARY_FILE"
             fi
-        done < "$UNIQUE_INDEXES_FILE"
+        done < "$TEMP_DIR/2d_indexes.txt"
     fi
     
-    if [[ $text_indexes -gt 0 ]]; then
+    if [[ $count_2dsphere -gt 0 ]]; then
         echo "" >> "$SUMMARY_FILE"
-        echo "Text indexes found: $text_indexes" >> "$SUMMARY_FILE"
+        echo "2dsphere indexes found: $count_2dsphere" >> "$SUMMARY_FILE"
         echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        
-        # Get affected text indexes
         while read -r line; do
-            if [[ -n "$line" ]]; then  # Only process non-empty lines
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/2dsphere_indexes.txt"
+    fi
+    
+    if [[ $count_hashed -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Hashed indexes found: $count_hashed" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/hashed_indexes.txt"
+    fi
+    
+    if [[ $count_text -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Text indexes found: $count_text" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
                 echo "    * $line" >> "$SUMMARY_FILE"
             fi
         done < "$TEXT_INDEXES_FILE"
     fi
     
-    if [[ $ttl_indexes -gt 0 ]]; then
+    # Report on unsupported index options
+    if [[ $count_unique -gt 0 ]]; then
         echo "" >> "$SUMMARY_FILE"
-        echo "TTL indexes found: $ttl_indexes" >> "$SUMMARY_FILE"
+        echo "Unique indexes found: $count_unique" >> "$SUMMARY_FILE"
         echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        
-        # Get affected TTL indexes
         while read -r line; do
-            if [[ -n "$line" ]]; then  # Only process non-empty lines
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$UNIQUE_INDEXES_FILE"
+    fi
+    
+    if [[ $count_expireAfterSeconds -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "TTL indexes found: $count_expireAfterSeconds" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
                 echo "    * $line" >> "$SUMMARY_FILE"
             fi
         done < "$TTL_INDEXES_FILE"
     fi
     
-    if [[ $partial_indexes -gt 0 ]]; then
+    if [[ $count_partialFilterExpression -gt 0 ]]; then
         echo "" >> "$SUMMARY_FILE"
-        echo "Partial indexes found: $partial_indexes" >> "$SUMMARY_FILE"
+        echo "Partial indexes found: $count_partialFilterExpression" >> "$SUMMARY_FILE"
         echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        
-        # Get affected partial indexes
         while read -r line; do
-            if [[ -n "$line" ]]; then  # Only process non-empty lines
+            if [[ -n "$line" ]]; then
                 echo "    * $line" >> "$SUMMARY_FILE"
             fi
         done < "$PARTIAL_INDEXES_FILE"
     fi
     
-    if [[ ${#unsupported_types[@]} -gt 0 ]]; then
+    if [[ $count_hidden -gt 0 ]]; then
         echo "" >> "$SUMMARY_FILE"
-        echo "Unsupported index types found:" >> "$SUMMARY_FILE"
-        for type in "${unsupported_types[@]}"; do
-            echo "  - $type" >> "$SUMMARY_FILE"
-            echo "    Affected indexes:" >> "$SUMMARY_FILE"
-            
-            # Get affected indexes for this type
-            grep ":${type}$" "$UNSUPPORTED_INDEXES_FILE" | while read -r line; do
-                index_name=${line%:*}
-                echo "      * $index_name" >> "$SUMMARY_FILE"
-            done
-        done
+        echo "Hidden indexes found: $count_hidden" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/hidden_indexes.txt"
+    fi
+    
+    if [[ $count_case_insensitive -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Case insensitive indexes found: $count_case_insensitive" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/case_insensitive_indexes.txt"
+    fi
+    
+    if [[ $count_wildcard -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Wildcard indexes found: $count_wildcard" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/wildcard_indexes.txt"
+    fi
+    
+    if [[ $count_vector -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Vector indexes found: $count_vector" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/vector_indexes.txt"
+    fi
+    
+    if [[ $count_storageEngine -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Storage engine indexes found: $count_storageEngine" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/storageEngine_indexes.txt"
+    fi
+    
+    if [[ $count_collation -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Collation indexes found: $count_collation" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/collation_indexes.txt"
+    fi
+    
+    if [[ $count_dropDuplicates -gt 0 ]]; then
+        echo "" >> "$SUMMARY_FILE"
+        echo "Drop duplicates indexes found: $count_dropDuplicates" >> "$SUMMARY_FILE"
+        echo "  Affected indexes:" >> "$SUMMARY_FILE"
+        while read -r line; do
+            if [[ -n "$line" ]]; then
+                echo "    * $line" >> "$SUMMARY_FILE"
+            fi
+        done < "$TEMP_DIR/dropDuplicates_indexes.txt"
     fi
     
     cat "$SUMMARY_FILE"
 fi
 
-# Show issues if requested
-if [[ "$SHOW_ISSUES" == "true" ]]; then
-    if [[ "$DEBUG" == "true" ]]; then
-        echo "DEBUG: Issues file content:"
-        cat "$ISSUES_FILE"
-    fi
-    
-    if jq -e '. == {}' "$ISSUES_FILE" > /dev/null; then
-        echo "No incompatibilities found."
-    else
-        jq '.' "$ISSUES_FILE"
-    fi
-fi
-
-# Show compatible indexes if requested
-if [[ "$SHOW_COMPATIBLE" == "true" ]]; then
-    jq '.' "$COMPATIBLE_FILE"
-fi
 
 exit 0

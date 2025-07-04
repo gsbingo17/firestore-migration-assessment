@@ -1,0 +1,4 @@
+{"_id":{"$oid":"6867938b4b39a195dcb3b7c7"},"name":"Charlie","age":{"$numberInt":"35"},"city":"Paris","status":"active","orders":[{"item":"Monitor","qty":{"$numberInt":"1"},"price":{"$numberInt":"300"}}]}
+{"_id":{"$oid":"6867938b4b39a195dcb3b7c6"},"name":"Bob","age":{"$numberInt":"25"},"city":"London","status":"inactive","orders":[{"item":"Keyboard","qty":{"$numberInt":"1"},"price":{"$numberInt":"75"}}]}
+{"_id":{"$oid":"6867938b4b39a195dcb3b7c5"},"name":"Alice","age":{"$numberInt":"30"},"city":"New York","status":"active","orders":[{"item":"Laptop","qty":{"$numberInt":"1"},"price":{"$numberInt":"1200"}},{"item":"Mouse","qty":{"$numberInt":"2"},"price":{"$numberInt":"25"}}]}
+{"_id":{"$oid":"6867938b4b39a195dcb3b7c8"},"name":"Diana","age":{"$numberInt":"30"},"city":"New York","status":"active","orders":[{"item":"Laptop","qty":{"$numberInt":"1"},"price":{"$numberInt":"1200"}},{"item":"Headphones","qty":{"$numberInt":"1"},"price":{"$numberInt":"150"}}]}

@@ -124,76 +124,6 @@ Then analyze the exported indexes with the compatibility checker:
 ./index_compat_checker.sh --file indexes_output.json --summary
 ```
 
-### Method 3: Manual Export
-
-You can also manually export index information using the MongoDB shell:
-
-```javascript
-// Connect to your MongoDB instance
-mongo --host hostname --port port -u username -p password --authenticationDatabase admin
-
-// Switch to your database
-use your_database
-
-// Get all collections
-db.getCollectionNames().forEach(function(collection) {
-  // Get indexes for each collection
-  var indexes = db[collection].getIndexes();
-  
-  // Print or save the indexes
-  print("Collection: " + collection);
-  printjson(indexes);
-});
-```
-
-Then save the output to a file with the proper JSON format:
-
-```json
-{
-  "options": {},
-  "indexes": [
-    {
-      "v": 2,
-      "key": {"_id": 1},
-      "name": "_id_",
-      "ns": "database.collection"
-    },
-    ...
-  ]
-}
-```
-
-### Method 4: Using MongoDB Compass
-
-1. Connect to your MongoDB instance using MongoDB Compass
-2. Navigate to your database and collection
-3. Go to the "Indexes" tab
-4. Export the indexes to a JSON file
-
-### Index Metadata Format
-
-The metadata files should follow this JSON structure:
-
-```json
-{
-  "options": {},  // Collection options
-  "indexes": [    // Array of index definitions
-    {
-      "v": 2,                     // Index version
-      "key": {"_id": 1},          // Index key specification
-      "name": "_id_",             // Index name
-      "ns": "database.collection" // Namespace (database.collection)
-    },
-    {
-      "v": 2,
-      "key": {"field1": 1, "field2": -1},  // Compound index
-      "name": "field1_1_field2_-1",
-      "ns": "database.collection"
-    }
-  ]
-}
-```
-
 ## Usage
 The compatibility checker accepts the following arguments:
 
@@ -201,10 +131,8 @@ The compatibility checker accepts the following arguments:
 --debug                Output debugging information
 --dir DIR              Directory containing metadata files to check
 --file FILE            Single metadata file to check
---show-issues          Show detailed compatibility issues
---show-compatible      Show compatible indexes only
 --summary              Show a summary of compatibility statistics
---quiet                Suppress progress messages
+--help                 Display this help message
 ```
 
 ### Examples
@@ -248,61 +176,6 @@ Unsupported index types found:
       * test.users.userId_hashed
 ```
 
-#### Show detailed compatibility issues:
-```bash
-./index_compat_checker.sh --dir /path/to/metadata --show-issues
-```
-
-Output:
-```json
-{
-    "database_name": {
-        "collection_name": {
-            "index_name": {
-                "unsupported_index_types": "2d"
-            },
-            "another_index_name": {
-                "unsupported_index_options": [
-                    "collation"
-                ]
-            }
-        }
-    }
-}
-```
-
-#### Show only compatible indexes:
-```bash
-./index_compat_checker.sh --dir /path/to/metadata --show-compatible
-```
-
-Output:
-```json
-{
-    "database_name": {
-        "collection_name": {
-            "filepath": "/path/to/metadata/collection.metadata.json",
-            "indexes": {
-                "_id_": {
-                    "key": {
-                        "_id": 1
-                    },
-                    "ns": "database_name.collection_name",
-                    "v": 2
-                },
-                "field1_1": {
-                    "key": {
-                        "field1": 1
-                    },
-                    "ns": "database_name.collection_name",
-                    "v": 2
-                }
-            },
-            "options": {}
-        }
-    }
-}
-```
 
 ## Compatibility Checks
 

@@ -1,0 +1,10 @@
+{"_id":"insert-27","type":"insert","value":{"$numberDouble":"757.1026616841283"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749684"}}}
+{"_id":"insert-76","type":"insert","value":{"$numberDouble":"161.24864886496115"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749704"}}}
+{"_id":"insert-37","type":"insert","value":{"$numberDouble":"811.0091387990748"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749687"}}}
+{"_id":"insert-62","type":"insert","value":{"$numberDouble":"86.77347983149542"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749698"}}}
+{"_id":"insert-29","type":"insert","value":{"$numberDouble":"408.0696495208349"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749685"}}}
+{"_id":"insert-86","type":"insert","value":{"$numberDouble":"41.28640790772664"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749708"}}}
+{"_id":"insert-59","type":"insert","value":{"$numberDouble":"440.61907421290636"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749697"}}}
+{"_id":"insert-72","type":"insert","value":{"$numberDouble":"39.30263286406155"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749702"}}}
+{"_id":"insert-77","type":"insert","value":{"$numberDouble":"158.38321693920255"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749705"}}}
+{"_id":"insert-41","type":"insert","value":{"$numberDouble":"87.15321779471475"},"createdAt":{"$date":{"$numberLong":"1747400749620"}},"updated":true,"updatedAt":{"$date":{"$numberLong":"1747400749689"}}}

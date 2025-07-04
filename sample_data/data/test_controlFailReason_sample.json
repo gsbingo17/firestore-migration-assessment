@@ -1,0 +1,3 @@
+{"_id":{"$oid":"60d94221123123248c2e13c0"},"type":"common","code":{"$numberInt":"-1"},"detailCode":"C0102","remark":"车机两线","createTime":{"$date":{"$numberLong":"1630463220000"}}}
+{"_id":{"$oid":"60d94221233123248c2e13c0"},"type":"common","code":{"$numberInt":"0"},"detailCode":"C0000","remark":"无法连接开关","createTime":{"$date":{"$numberLong":"1630463220000"}}}
+{"_id":{"$oid":"60d94221456123248c2e13c0"},"type":"common","code":{"$numberInt":"3"},"detailCode":"C0002","remark":"未收到IKEY模块认证请求","createTime":{"$date":{"$numberLong":"1630463220000"}}}

@@ -25,6 +25,7 @@ TYPE_NAMES=(
     "JavaScript_with_scope"
     "Symbol"
     "Undefined"
+    "GeoJSON"
 )
 
 TYPE_QUERIES=(
@@ -34,6 +35,7 @@ TYPE_QUERIES=(
     'paths as $p | select(getpath($p) | type == "object" and has("$code") and has("$scope")) | $p'
     'paths as $p | select(getpath($p) | type == "object" and has("$symbol")) | $p'
     'paths as $p | select(getpath($p) | type == "object" and has("$undefined")) | $p'
+    'paths as $p | select(getpath($p) | type == "object" and has("$geometry")) | $p'
 )
 
 # Function to get type name for display
@@ -46,6 +48,7 @@ get_type_display_name() {
         3) echo "JavaScript with scope" ;;
         4) echo "Symbol" ;;
         5) echo "Undefined" ;;
+        6) echo "GeoJSON" ;;
         *) echo "Unknown" ;;
     esac
 }
@@ -191,6 +194,12 @@ get_line_number() {
             fi
         elif [[ "$value" == *"\$undefined"* ]]; then
             local line_num=$(grep -n '"\$undefined"' "$file" | sed -n "${occurrence}p" | cut -d: -f1)
+            if [[ -n "$line_num" ]]; then
+                echo "$line_num"
+                return
+            fi
+        elif [[ "$value" == *"\$geometry"* ]]; then
+            local line_num=$(grep -n '"\$geometry"' "$file" | sed -n "${occurrence}p" | cut -d: -f1)
             if [[ -n "$line_num" ]]; then
                 echo "$line_num"
                 return
@@ -392,6 +401,7 @@ check_file() {
                                     "JavaScript") type_marker='"\$code"' ;;
                                     "Symbol") type_marker='"\$symbol"' ;;
                                     "Undefined") type_marker='"\$undefined"' ;;
+                                    "GeoJSON") type_marker='"\$geometry"' ;;
                                 esac
                                 
                                 if [[ -n "$type_marker" ]]; then

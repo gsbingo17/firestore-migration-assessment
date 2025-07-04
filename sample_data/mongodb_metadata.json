@@ -1,0 +1,1250 @@
+Using default MongoDB connection...
+MongoDB version: 6.0.16
+Storage engine: wiredTiger
+Found 4 user databases
+Processing database: my-database
+  Processing collection: my-database.mock_data
+    Found 1 indexes
+Completed database my-database: 1 collections, 1 indexes
+Processing database: myNodeDb
+  Processing collection: myNodeDb.users
+    Found 1 indexes
+Completed database myNodeDb: 1 collections, 1 indexes
+Processing database: test
+  Processing collection: test.users
+    Found 6 indexes
+  Processing collection: test.coreBusinessTemplateConfig
+    Found 1 indexes
+  Processing collection: test.products
+    Found 3 indexes
+  Processing collection: test.inventory
+    Found 1 indexes
+  Processing collection: test.testCollection
+    Found 1 indexes
+  Processing collection: test.customers
+    Found 5 indexes
+  Processing collection: test.myCollection
+    Found 1 indexes
+  Processing collection: test.log_entries
+    Found 2 indexes
+  Processing collection: test.controlFailReason
+    Found 1 indexes
+  Processing collection: test.testTable
+    Found 1 indexes
+  Processing collection: test.test1
+    Found 1 indexes
+  Processing collection: test.stores
+    Found 4 indexes
+  Processing collection: test.bson_type_test
+    Found 1 indexes
+  Processing collection: test.orders
+    Found 1 indexes
+Completed database test: 14 collections, 29 indexes
+Processing database: verification_db
+  Processing collection: verification_db.test_collection
+    Found 1 indexes
+Completed database verification_db: 1 collections, 1 indexes
+{
+  "timestamp": "2025-07-04T14:16:23.750Z",
+  "mongodb": {
+    "version": "6.0.16",
+    "buildInfo": {
+      "version": "6.0.16",
+      "gitVersion": "1bbe71e91a41b097b19d036dee47b861b3f27181",
+      "allocator": "system",
+      "javascriptEngine": "mozjs",
+      "sysInfo": "deprecated",
+      "bits": 64,
+      "maxBsonObjectSize": 16777216
+    },
+    "serverStatus": {
+      "host": "binguo-macbookpro2.roam.corp.google.com",
+      "version": "6.0.16",
+      "process": "mongod",
+      "pid": {
+        "low": 2351,
+        "high": 0,
+        "unsigned": false
+      },
+      "uptime": 3160670,
+      "uptimeMillis": {
+        "low": -1134298062,
+        "high": 0,
+        "unsigned": false
+      },
+      "uptimeEstimate": {
+        "low": 3160669,
+        "high": 0,
+        "unsigned": false
+      },
+      "localTime": "2025-07-04T14:16:23.792Z"
+    },
+    "storageEngine": "wiredTiger"
+  },
+  "databases": [
+    {
+      "name": "my-database",
+      "sizeOnDisk": {
+        "low": 593920,
+        "high": 0,
+        "unsigned": false
+      },
+      "empty": false,
+      "collections": [
+        {
+          "name": "mock_data",
+          "namespace": "my-database.mock_data",
+          "stats": {
+            "size": 560011,
+            "count": 1035,
+            "avgObjSize": 541,
+            "storageSize": 540672,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 53248,
+            "indexSizes": {
+              "_id_": 53248
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "my-database.mock_data"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 1035,
+            "avgObjSize": 541,
+            "totalSize": 560011,
+            "storageSize": 540672,
+            "indexSize": 53248
+          }
+        }
+      ],
+      "stats": {
+        "collections": 1,
+        "views": 0,
+        "objects": 1035,
+        "avgObjSize": 541.0734299516909,
+        "dataSize": 560011,
+        "storageSize": 540672,
+        "indexes": 1,
+        "indexSize": 53248,
+        "totalSize": 593920,
+        "scaleFactor": 1
+      },
+      "summary": {
+        "totalCollections": 1,
+        "totalIndexes": 1,
+        "totalSize": 560011,
+        "totalDataSize": 0,
+        "totalStorageSize": 540672,
+        "totalDocuments": 1035
+      }
+    },
+    {
+      "name": "myNodeDb",
+      "sizeOnDisk": {
+        "low": 40960,
+        "high": 0,
+        "unsigned": false
+      },
+      "empty": false,
+      "collections": [
+        {
+          "name": "users",
+          "namespace": "myNodeDb.users",
+          "stats": {
+            "size": 665,
+            "count": 4,
+            "avgObjSize": 166,
+            "storageSize": 20480,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 20480,
+            "indexSizes": {
+              "_id_": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "myNodeDb.users"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 4,
+            "avgObjSize": 166,
+            "totalSize": 665,
+            "storageSize": 20480,
+            "indexSize": 20480
+          }
+        }
+      ],
+      "stats": {
+        "collections": 1,
+        "views": 0,
+        "objects": 4,
+        "avgObjSize": 166.25,
+        "dataSize": 665,
+        "storageSize": 20480,
+        "indexes": 1,
+        "indexSize": 20480,
+        "totalSize": 40960,
+        "scaleFactor": 1
+      },
+      "summary": {
+        "totalCollections": 1,
+        "totalIndexes": 1,
+        "totalSize": 665,
+        "totalDataSize": 0,
+        "totalStorageSize": 20480,
+        "totalDocuments": 4
+      }
+    },
+    {
+      "name": "test",
+      "sizeOnDisk": {
+        "low": 22110208,
+        "high": 0,
+        "unsigned": false
+      },
+      "empty": false,
+      "collections": [
+        {
+          "name": "users",
+          "namespace": "test.users",
+          "stats": {
+            "size": 107,
+            "count": 2,
+            "avgObjSize": 53,
+            "storageSize": 36864,
+            "capped": false,
+            "nindexes": 6,
+            "totalIndexSize": 126976,
+            "indexSizes": {
+              "_id_": 36864,
+              "email_1": 20480,
+              "lastName_1_firstName_1": 20480,
+              "lastName_1": 20480,
+              "userId_hashed": 20480,
+              "active_users_email_index": 8192
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.users"
+            },
+            {
+              "name": "email_1",
+              "key": {
+                "email": 1
+              },
+              "unique": true,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.users"
+            },
+            {
+              "name": "lastName_1_firstName_1",
+              "key": {
+                "lastName": 1,
+                "firstName": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.users"
+            },
+            {
+              "name": "lastName_1",
+              "key": {
+                "lastName": 1
+              },
+              "unique": true,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.users"
+            },
+            {
+              "name": "userId_hashed",
+              "key": {
+                "userId": "hashed"
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.users"
+            },
+            {
+              "name": "active_users_email_index",
+              "key": {
+                "email": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": {
+                "status": "active"
+              },
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.users"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 6,
+            "totalDocuments": 2,
+            "avgObjSize": 53,
+            "totalSize": 107,
+            "storageSize": 36864,
+            "indexSize": 126976
+          }
+        },
+        {
+          "name": "coreBusinessTemplateConfig",
+          "namespace": "test.coreBusinessTemplateConfig",
+          "stats": {
+            "size": 56110,
+            "count": 1,
+            "avgObjSize": 56110,
+            "storageSize": 24576,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 20480,
+            "indexSizes": {
+              "_id_": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.coreBusinessTemplateConfig"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 1,
+            "avgObjSize": 56110,
+            "totalSize": 56110,
+            "storageSize": 24576,
+            "indexSize": 20480
+          }
+        },
+        {
+          "name": "products",
+          "namespace": "test.products",
+          "stats": {
+            "size": 0,
+            "count": 0,
+            "avgObjSize": 0,
+            "storageSize": 4096,
+            "capped": false,
+            "nindexes": 3,
+            "totalIndexSize": 12288,
+            "indexSizes": {
+              "_id_": 4096,
+              "category_1": 4096,
+              "product_text_search_index": 4096
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.products"
+            },
+            {
+              "name": "category_1",
+              "key": {
+                "category": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.products"
+            },
+            {
+              "name": "product_text_search_index",
+              "key": {
+                "_fts": "text",
+                "_ftsx": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": 3,
+              "weights": {
+                "description": 5,
+                "name": 10
+              },
+              "default_language": "english",
+              "language_override": "language",
+              "v": 2,
+              "ns": "test.products"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 3,
+            "totalDocuments": 0,
+            "avgObjSize": 0,
+            "totalSize": 0,
+            "storageSize": 4096,
+            "indexSize": 12288
+          }
+        },
+        {
+          "name": "inventory",
+          "namespace": "test.inventory",
+          "stats": {
+            "size": 576,
+            "count": 5,
+            "avgObjSize": 115,
+            "storageSize": 20480,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 20480,
+            "indexSizes": {
+              "_id_": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.inventory"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 5,
+            "avgObjSize": 115,
+            "totalSize": 576,
+            "storageSize": 20480,
+            "indexSize": 20480
+          }
+        },
+        {
+          "name": "testCollection",
+          "namespace": "test.testCollection",
+          "stats": {
+            "size": 8696,
+            "count": 4,
+            "avgObjSize": 2174,
+            "storageSize": 20480,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 20480,
+            "indexSizes": {
+              "_id_": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.testCollection"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 4,
+            "avgObjSize": 2174,
+            "totalSize": 8696,
+            "storageSize": 20480,
+            "indexSize": 20480
+          }
+        },
+        {
+          "name": "customers",
+          "namespace": "test.customers",
+          "stats": {
+            "size": 0,
+            "count": 0,
+            "avgObjSize": 0,
+            "storageSize": 17805312,
+            "capped": false,
+            "nindexes": 5,
+            "totalIndexSize": 2445312,
+            "indexSizes": {
+              "_id_": 1200128,
+              "email_1": 12288,
+              "lastLoginTime_1": 1224704,
+              "$**_1": 4096,
+              "userName_1": 4096
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.customers"
+            },
+            {
+              "name": "email_1",
+              "key": {
+                "email": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": {
+                "userName": {
+                  "$gt": "abc"
+                }
+              },
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.customers"
+            },
+            {
+              "name": "lastLoginTime_1",
+              "key": {
+                "lastLoginTime": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": 3600000,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.customers"
+            },
+            {
+              "name": "$**_1",
+              "key": {
+                "$**": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.customers"
+            },
+            {
+              "name": "userName_1",
+              "key": {
+                "userName": 1
+              },
+              "unique": true,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.customers"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 5,
+            "totalDocuments": 0,
+            "avgObjSize": 0,
+            "totalSize": 0,
+            "storageSize": 17805312,
+            "indexSize": 2445312
+          }
+        },
+        {
+          "name": "myCollection",
+          "namespace": "test.myCollection",
+          "stats": {
+            "size": 118,
+            "count": 2,
+            "avgObjSize": 59,
+            "storageSize": 36864,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 36864,
+            "indexSizes": {
+              "_id_": 36864
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.myCollection"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 2,
+            "avgObjSize": 59,
+            "totalSize": 118,
+            "storageSize": 36864,
+            "indexSize": 36864
+          }
+        },
+        {
+          "name": "log_entries",
+          "namespace": "test.log_entries",
+          "stats": {
+            "size": 0,
+            "count": 0,
+            "avgObjSize": 0,
+            "storageSize": 4096,
+            "capped": false,
+            "nindexes": 2,
+            "totalIndexSize": 8192,
+            "indexSizes": {
+              "_id_": 4096,
+              "log_entry_ttl_index": 4096
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.log_entries"
+            },
+            {
+              "name": "log_entry_ttl_index",
+              "key": {
+                "createdAt": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": 2592000,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.log_entries"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 2,
+            "totalDocuments": 0,
+            "avgObjSize": 0,
+            "totalSize": 0,
+            "storageSize": 4096,
+            "indexSize": 8192
+          }
+        },
+        {
+          "name": "controlFailReason",
+          "namespace": "test.controlFailReason",
+          "stats": {
+            "size": 373,
+            "count": 3,
+            "avgObjSize": 124,
+            "storageSize": 36864,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 36864,
+            "indexSizes": {
+              "_id_": 36864
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.controlFailReason"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 3,
+            "avgObjSize": 124,
+            "totalSize": 373,
+            "storageSize": 36864,
+            "indexSize": 36864
+          }
+        },
+        {
+          "name": "testTable",
+          "namespace": "test.testTable",
+          "stats": {
+            "size": 3564780,
+            "count": 10000,
+            "avgObjSize": 356,
+            "storageSize": 1019904,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 114688,
+            "indexSizes": {
+              "_id_": 114688
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.testTable"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 10000,
+            "avgObjSize": 356,
+            "totalSize": 3564780,
+            "storageSize": 1019904,
+            "indexSize": 114688
+          }
+        },
+        {
+          "name": "test1",
+          "namespace": "test.test1",
+          "stats": {
+            "size": 326,
+            "count": 5,
+            "avgObjSize": 65,
+            "storageSize": 20480,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 20480,
+            "indexSizes": {
+              "_id_": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.test1"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 5,
+            "avgObjSize": 65,
+            "totalSize": 326,
+            "storageSize": 20480,
+            "indexSize": 20480
+          }
+        },
+        {
+          "name": "stores",
+          "namespace": "test.stores",
+          "stats": {
+            "size": 433,
+            "count": 6,
+            "avgObjSize": 72,
+            "storageSize": 20480,
+            "capped": false,
+            "nindexes": 4,
+            "totalIndexSize": 81920,
+            "indexSizes": {
+              "_id_": 20480,
+              "name_text_description_text": 20480,
+              "name_1": 20480,
+              "description_1": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.stores"
+            },
+            {
+              "name": "name_text_description_text",
+              "key": {
+                "_fts": "text",
+                "_ftsx": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": 3,
+              "weights": {
+                "description": 1,
+                "name": 1
+              },
+              "default_language": "english",
+              "language_override": "language",
+              "v": 2,
+              "ns": "test.stores"
+            },
+            {
+              "name": "name_1",
+              "key": {
+                "name": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.stores"
+            },
+            {
+              "name": "description_1",
+              "key": {
+                "description": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.stores"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 4,
+            "totalDocuments": 6,
+            "avgObjSize": 72,
+            "totalSize": 433,
+            "storageSize": 20480,
+            "indexSize": 81920
+          }
+        },
+        {
+          "name": "bson_type_test",
+          "namespace": "test.bson_type_test",
+          "stats": {
+            "size": 6314,
+            "count": 4,
+            "avgObjSize": 1578,
+            "storageSize": 20480,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 20480,
+            "indexSizes": {
+              "_id_": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.bson_type_test"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 4,
+            "avgObjSize": 1578,
+            "totalSize": 6314,
+            "storageSize": 20480,
+            "indexSize": 20480
+          }
+        },
+        {
+          "name": "orders",
+          "namespace": "test.orders",
+          "stats": {
+            "size": 403,
+            "count": 2,
+            "avgObjSize": 201,
+            "storageSize": 36864,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 36864,
+            "indexSizes": {
+              "_id_": 36864
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "test.orders"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 2,
+            "avgObjSize": 201,
+            "totalSize": 403,
+            "storageSize": 36864,
+            "indexSize": 36864
+          }
+        }
+      ],
+      "stats": {
+        "collections": 14,
+        "views": 0,
+        "objects": 10034,
+        "avgObjSize": 362.5907913095475,
+        "dataSize": 3638236,
+        "storageSize": 19107840,
+        "indexes": 29,
+        "indexSize": 3002368,
+        "totalSize": 22110208,
+        "scaleFactor": 1
+      },
+      "summary": {
+        "totalCollections": 14,
+        "totalIndexes": 29,
+        "totalSize": 3638236,
+        "totalDataSize": 0,
+        "totalStorageSize": 19107840,
+        "totalDocuments": 10034
+      }
+    },
+    {
+      "name": "verification_db",
+      "sizeOnDisk": {
+        "low": 40960,
+        "high": 0,
+        "unsigned": false
+      },
+      "empty": false,
+      "collections": [
+        {
+          "name": "test_collection",
+          "namespace": "verification_db.test_collection",
+          "stats": {
+            "size": 10390,
+            "count": 100,
+            "avgObjSize": 103,
+            "storageSize": 20480,
+            "capped": false,
+            "nindexes": 1,
+            "totalIndexSize": 20480,
+            "indexSizes": {
+              "_id_": 20480
+            }
+          },
+          "indexes": [
+            {
+              "name": "_id_",
+              "key": {
+                "_id": 1
+              },
+              "unique": false,
+              "sparse": false,
+              "background": false,
+              "partialFilterExpression": null,
+              "expireAfterSeconds": null,
+              "textIndexVersion": null,
+              "weights": null,
+              "default_language": null,
+              "language_override": null,
+              "v": 2,
+              "ns": "verification_db.test_collection"
+            }
+          ],
+          "summary": {
+            "totalIndexes": 1,
+            "totalDocuments": 100,
+            "avgObjSize": 103,
+            "totalSize": 10390,
+            "storageSize": 20480,
+            "indexSize": 20480
+          }
+        }
+      ],
+      "stats": {
+        "collections": 1,
+        "views": 0,
+        "objects": 100,
+        "avgObjSize": 103.9,
+        "dataSize": 10390,
+        "storageSize": 20480,
+        "indexes": 1,
+        "indexSize": 20480,
+        "totalSize": 40960,
+        "scaleFactor": 1
+      },
+      "summary": {
+        "totalCollections": 1,
+        "totalIndexes": 1,
+        "totalSize": 10390,
+        "totalDataSize": 0,
+        "totalStorageSize": 20480,
+        "totalDocuments": 100
+      }
+    }
+  ],
+  "summary": {
+    "totalDatabases": 4,
+    "totalCollections": 17,
+    "totalIndexes": 32,
+    "totalSize": 22786048,
+    "totalDataSize": 4209302,
+    "totalStorageSize": 19689472
+  }
+}
+
+Metadata Collection Summary:
+MongoDB version: 6.0.16
+Storage engine: wiredTiger
+Processed 4 databases
+Processed 17 collections
+Found 32 total indexes
+Total size: 21.73 MB
+Total data size: 4.01 MB
+Total storage size: 18.78 MB
+
+Database Summary:
+- my-database: 1 collections, 1 indexes, 0.57 MB
+- myNodeDb: 1 collections, 1 indexes, 0.04 MB
+- test: 14 collections, 29 indexes, 21.09 MB
+- verification_db: 1 collections, 1 indexes, 0.04 MB

@@ -1,0 +1,6 @@
+{"_id":{"$numberInt":"6"},"name":"NYC_Coffee Shop","description":"local NYC coffee"}
+{"_id":{"$numberInt":"5"},"name":"Java Shopping","description":"Indonesian goods"}
+{"_id":{"$numberInt":"4"},"name":"Clothes Clothes Clothes","description":"Discount clothing"}
+{"_id":{"$numberInt":"2"},"name":"Burger Buns","description":"Gourmet hamburgers"}
+{"_id":{"$numberInt":"3"},"name":"Coffee Shop","description":"Just coffee"}
+{"_id":{"$numberInt":"1"},"name":"Java Hut","description":"Coffee and cakes"}

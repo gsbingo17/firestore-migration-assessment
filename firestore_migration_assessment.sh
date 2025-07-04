@@ -8,9 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Default values
 DIR=""
-LOG_FILE=""
-DATA_FILE=""
-METADATA_DIR=""
+FILE=""
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
 RUN_DATATYPE=false
@@ -42,9 +40,12 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --dir DIR                 Directory to scan (for all assessment types)"
-    echo "  --log-file FILE           MongoDB log file to analyze for operator compatibility"
-    echo "  --data-file FILE          JSON data file to check for data type compatibility"
-    echo "  --metadata-dir DIR        Directory containing index metadata files"
+    echo "                            Uses subdirectory routing:"
+    echo "                            - app/ for operator checking"
+    echo "                            - data/ for datatype checking"
+    echo "                            - root directory for index checking"
+    echo "  --file FILE               File to scan (for any assessment type)"
+    echo "                            Use with --run-datatype, --run-operator, --run-index, or --run-all"
     echo "  --output-format FORMAT    Output format (text, json) [default: text]"
     echo "  --output-file FILE        File to write the report to [default: stdout]"
     echo "  --run-all                 Run all assessment types"
@@ -57,10 +58,17 @@ usage() {
     echo "  --help                    Display this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --dir /path/to/project --run-all"
-    echo "  $0 --log-file logs/mongodb.log --run-operator"
-    echo "  $0 --data-file data.json --run-datatype --verbose"
-    echo "  $0 --collect-samples --run-datatype"
+    echo "  # Directory-based assessment:"
+    echo "  $0 --dir sample_data --run-all"
+    echo "  $0 --dir sample_data --run-operator"
+    echo ""
+    echo "  # File-based assessment:"
+    echo "  $0 --file sample.json --run-datatype"
+    echo "  $0 --file mongodb.log --run-operator"
+    echo "  $0 --file indexes.metadata.json --run-index"
+    echo ""
+    echo "  # Output options:"
+    echo "  $0 --dir sample_data --run-all --output-format json --output-file report.json"
     exit 1
 }
 
@@ -71,16 +79,13 @@ while [[ $# -gt 0 ]]; do
             DIR="$2"
             shift 2
             ;;
-        --log-file)
-            LOG_FILE="$2"
+        --file)
+            FILE="$2"
             shift 2
             ;;
-        --data-file)
-            DATA_FILE="$2"
-            shift 2
-            ;;
-        --metadata-dir)
-            METADATA_DIR="$2"
+        --log-file|--data-file|--metadata-dir)
+            echo "Warning: Legacy parameter $1 is deprecated. Please use --file instead."
+            FILE="$2"
             shift 2
             ;;
         --output-format)
@@ -137,19 +142,24 @@ if [[ "$RUN_DATATYPE" == "false" && "$RUN_OPERATOR" == "false" && "$RUN_INDEX" =
     usage
 fi
 
-if [[ "$RUN_DATATYPE" == "true" && -z "$DATA_FILE" && -z "$DIR" ]]; then
-    echo "Error: For datatype assessment, either --data-file or --dir must be specified"
+if [[ -n "$DIR" && -n "$FILE" ]]; then
+    echo "Error: Cannot specify both --dir and --file. Use either directory-based or file-based assessment."
     usage
 fi
 
-if [[ "$RUN_OPERATOR" == "true" && -z "$LOG_FILE" && -z "$DIR" ]]; then
-    echo "Error: For operator assessment, either --log-file or --dir must be specified"
+if [[ -z "$DIR" && -z "$FILE" ]]; then
+    echo "Error: Either --dir or --file must be specified"
     usage
 fi
 
-if [[ "$RUN_INDEX" == "true" && -z "$METADATA_DIR" && -z "$DIR" ]]; then
-    echo "Error: For index assessment, either --metadata-dir or --dir must be specified"
-    usage
+if [[ -n "$FILE" && ! -f "$FILE" ]]; then
+    echo "Error: File not found: $FILE"
+    exit 1
+fi
+
+if [[ -n "$DIR" && ! -d "$DIR" ]]; then
+    echo "Error: Directory not found: $DIR"
+    exit 1
 fi
 
 # Validate output format
@@ -166,10 +176,15 @@ run_datatype_assessment() {
     
     local datatype_args=""
     
-    if [[ -n "$DATA_FILE" ]]; then
-        datatype_args="--file $DATA_FILE"
+    if [[ -n "$FILE" ]]; then
+        datatype_args="--file $FILE"
     elif [[ -n "$DIR" ]]; then
-        datatype_args="--dir $DIR"
+        # Check if data subdirectory exists, use it; otherwise use main directory
+        if [[ -d "$DIR/data" ]]; then
+            datatype_args="--dir $DIR/data"
+        else
+            datatype_args="--dir $DIR"
+        fi
     fi
     
     if [[ "$VERBOSE" == "true" ]]; then
@@ -198,12 +213,17 @@ run_operator_assessment() {
         echo "Running operator compatibility assessment..."
     fi
     
-    local operator_args="--mode=scan"
+    local operator_args="--mode scan"
     
-    if [[ -n "$LOG_FILE" ]]; then
-        operator_args="$operator_args --file=$LOG_FILE"
+    if [[ -n "$FILE" ]]; then
+        operator_args="$operator_args --file $FILE"
     elif [[ -n "$DIR" ]]; then
-        operator_args="$operator_args --directory=$DIR"
+        # Check if app subdirectory exists, use it; otherwise use main directory
+        if [[ -d "$DIR/app" ]]; then
+            operator_args="$operator_args --dir $DIR/app"
+        else
+            operator_args="$operator_args --dir $DIR"
+        fi
     fi
     
     if [[ "$VERBOSE" == "true" ]]; then
@@ -232,8 +252,8 @@ run_index_assessment() {
     
     local index_args="--summary"
     
-    if [[ -n "$METADATA_DIR" ]]; then
-        index_args="$index_args --dir $METADATA_DIR"
+    if [[ -n "$FILE" ]]; then
+        index_args="$index_args --file $FILE"
     elif [[ -n "$DIR" ]]; then
         index_args="$index_args --dir $DIR"
     fi
@@ -361,44 +381,253 @@ generate_json_report() {
     # Close summary section
     echo "  }" >> "$json_file"
     
-    # Add detailed sections if verbose
-    if [[ "$VERBOSE" == "true" ]]; then
-        echo "  ,\"details\": {" >> "$json_file"
+    # Always add detailed sections for JSON format
+    echo "  ,\"details\": {" >> "$json_file"
+    
+    # Add datatype details if applicable
+    if [[ "$RUN_DATATYPE" == "true" ]]; then
+        # Create structured JSON for datatype details
+        echo "    \"datatype\": {" >> "$json_file"
+        echo "      \"files_with_issues\": [" >> "$json_file"
         
-        # Add datatype details if applicable
-        if [[ "$RUN_DATATYPE" == "true" ]]; then
-            # Escape special characters in the output
-            local datatype_details=$(cat "$DATATYPE_OUTPUT" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | tr '\n' ' ')
-            echo "    \"datatype\": \"$datatype_details\"" >> "$json_file"
+        # Process datatype output to extract file issues
+        local current_file=""
+        local first_file=true
+        
+        # Read the datatype output line by line
+        while IFS= read -r line; do
+            # Check if this is a file line
+            if [[ "$line" =~ ^File:\ (.+)$ ]]; then
+                # Extract the filename
+                local filename="${BASH_REMATCH[1]}"
+                
+                # If we were processing a previous file, close its JSON object
+                if [[ -n "$current_file" && "$first_file" == "false" ]]; then
+                    echo "          ]" >> "$json_file"
+                    echo "        }," >> "$json_file"
+                elif [[ -n "$current_file" && "$first_file" == "true" ]]; then
+                    echo "          ]" >> "$json_file"
+                    echo "        }" >> "$json_file"
+                    first_file=false
+                fi
+                
+                # Start a new file object
+                if [[ "$first_file" == "true" ]]; then
+                    echo "        {" >> "$json_file"
+                    first_file=false
+                else
+                    echo "        {" >> "$json_file"
+                fi
+                
+                echo "          \"file\": \"$filename\"," >> "$json_file"
+                echo "          \"issues\": [" >> "$json_file"
+                
+                current_file="$filename"
+                first_issue=true
             
-            # Add comma if there are more sections
-            if [[ "$RUN_OPERATOR" == "true" || "$RUN_INDEX" == "true" ]]; then
-                echo "    ," >> "$json_file"
+            # Check if this is an issue line
+            elif [[ "$line" =~ ^[[:space:]]*-[[:space:]]Line[[:space:]]([0-9]+): ]]; then
+                # Extract line number from regex match
+                local line_num="${BASH_REMATCH[1]}"
+                
+                # Extract type and description using simpler string operations
+                local rest_of_line="${line#*Line $line_num: }"
+                local issue_type="${rest_of_line%% detected*}"
+                local description="unsupported by Firestore"
+                
+                # Add the issue to the current file
+                if [[ "$first_issue" == "true" ]]; then
+                    echo "            {" >> "$json_file"
+                    first_issue=false
+                else
+                    echo "            ,{" >> "$json_file"
+                fi
+                
+                echo "              \"line\": $line_num," >> "$json_file"
+                echo "              \"type\": \"$issue_type\"," >> "$json_file"
+                echo "              \"description\": \"$description\"" >> "$json_file"
+                echo "            }" >> "$json_file"
             fi
+        done < "$DATATYPE_OUTPUT"
+        
+        # Close the last file object if there was one
+        if [[ -n "$current_file" ]]; then
+            echo "          ]" >> "$json_file"
+            echo "        }" >> "$json_file"
         fi
         
-        # Add operator details if applicable
-        if [[ "$RUN_OPERATOR" == "true" ]]; then
-            # Escape special characters in the output
-            local operator_details=$(cat "$OPERATOR_OUTPUT" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | tr '\n' ' ')
-            echo "    \"operator\": \"$operator_details\"" >> "$json_file"
-            
-            # Add comma if there are more sections
-            if [[ "$RUN_INDEX" == "true" ]]; then
-                echo "    ," >> "$json_file"
-            fi
-        fi
+        # Close the files_with_issues array
+        echo "      ]" >> "$json_file"
+        echo "    }" >> "$json_file"
         
-        # Add index details if applicable
-        if [[ "$RUN_INDEX" == "true" ]]; then
-            # Escape special characters in the output
-            local index_details=$(cat "$INDEX_OUTPUT" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | tr '\n' ' ')
-            echo "    \"index\": \"$index_details\"" >> "$json_file"
+        # Add comma if there are more sections
+        if [[ "$RUN_OPERATOR" == "true" || "$RUN_INDEX" == "true" ]]; then
+            echo "    ," >> "$json_file"
         fi
-        
-        # Close details section
-        echo "  }" >> "$json_file"
     fi
+    
+    # Add operator details if applicable
+    if [[ "$RUN_OPERATOR" == "true" ]]; then
+        # Create structured JSON for operator details
+        echo "    \"operator\": {" >> "$json_file"
+        echo "      \"unsupported_operators\": [" >> "$json_file"
+        
+        # Process operator output to extract operator issues
+        local current_operator=""
+        local first_operator=true
+        local in_locations=false
+        
+        # Read the operator output line by line
+        while IFS= read -r line; do
+            # Check if this is an operator line
+            if [[ "$line" =~ ^Operator:[[:space:]]\\\$([^[:space:]]+)$ ]]; then
+                # Extract the operator name
+                local operator_name="${BASH_REMATCH[1]}"
+                
+                # If we were processing a previous operator, close its JSON object
+                if [[ -n "$current_operator" && "$first_operator" == "false" ]]; then
+                    echo "          ]" >> "$json_file"
+                    echo "        }," >> "$json_file"
+                elif [[ -n "$current_operator" && "$first_operator" == "true" ]]; then
+                    echo "          ]" >> "$json_file"
+                    echo "        }" >> "$json_file"
+                    first_operator=false
+                fi
+                
+                # Start a new operator object
+                if [[ "$first_operator" == "true" ]]; then
+                    echo "        {" >> "$json_file"
+                    first_operator=false
+                else
+                    echo "        {" >> "$json_file"
+                fi
+                
+                echo "          \"operator\": \"\$$operator_name\"," >> "$json_file"
+                current_operator="$operator_name"
+                in_locations=false
+            
+            # Check if this is an occurrences line
+            elif [[ "$line" =~ ^Total[[:space:]]occurrences:[[:space:]]+([0-9]+)$ ]]; then
+                # Extract the occurrences count
+                local occurrences="${BASH_REMATCH[1]}"
+                echo "          \"occurrences\": $occurrences," >> "$json_file"
+                echo "          \"locations\": [" >> "$json_file"
+                in_locations=true
+                first_location=true
+            
+            # Check if this is a location line
+            elif [[ "$in_locations" == "true" && "$line" =~ ^[[:space:]]+([^[:space:]]+)[[:space:]]\(line[[:space:]]([0-9]+)\)$ ]]; then
+                # Extract file and line number
+                local file="${BASH_REMATCH[1]}"
+                local line_num="${BASH_REMATCH[2]}"
+                
+                # Add the location to the current operator
+                if [[ "$first_location" == "true" ]]; then
+                    echo "            {" >> "$json_file"
+                    first_location=false
+                else
+                    echo "            ,{" >> "$json_file"
+                fi
+                
+                echo "              \"file\": \"$file\"," >> "$json_file"
+                echo "              \"line\": $line_num" >> "$json_file"
+                echo "            }" >> "$json_file"
+            fi
+        done < <(grep -A 100 "Firestore Operator Compatibility Summary" "$OPERATOR_OUTPUT")
+        
+        # Close the last operator object if there was one
+        if [[ -n "$current_operator" ]]; then
+            echo "          ]" >> "$json_file"
+            echo "        }" >> "$json_file"
+        fi
+        
+        # Close the unsupported_operators array
+        echo "      ]" >> "$json_file"
+        echo "    }" >> "$json_file"
+        
+        # Add comma if there are more sections
+        if [[ "$RUN_INDEX" == "true" ]]; then
+            echo "    ," >> "$json_file"
+        fi
+    fi
+    
+    # Add index details if applicable
+    if [[ "$RUN_INDEX" == "true" ]]; then
+        # Create structured JSON for index details
+        echo "    \"index\": {" >> "$json_file"
+        echo "      \"incompatible_indexes\": [" >> "$json_file"
+        
+        # Process index output to extract index issues
+        local current_type=""
+        local first_type=true
+        local in_affected=false
+        
+        # Read the index output line by line
+        while IFS= read -r line; do
+            # Check if this is an index type line
+            if [[ "$line" =~ ^([^[:space:]]+)[[:space:]]indexes[[:space:]]found:[[:space:]]([0-9]+)$ ]]; then
+                # Extract the index type and count
+                local index_type="${BASH_REMATCH[1]}"
+                local count="${BASH_REMATCH[2]}"
+                
+                # If we were processing a previous type, close its JSON object
+                if [[ -n "$current_type" && "$first_type" == "false" ]]; then
+                    echo "          ]" >> "$json_file"
+                    echo "        }," >> "$json_file"
+                elif [[ -n "$current_type" && "$first_type" == "true" ]]; then
+                    echo "          ]" >> "$json_file"
+                    echo "        }" >> "$json_file"
+                    first_type=false
+                fi
+                
+                # Start a new type object
+                if [[ "$first_type" == "true" ]]; then
+                    echo "        {" >> "$json_file"
+                    first_type=false
+                else
+                    echo "        {" >> "$json_file"
+                fi
+                
+                echo "          \"type\": \"$index_type\"," >> "$json_file"
+                echo "          \"count\": $count," >> "$json_file"
+                echo "          \"indexes\": [" >> "$json_file"
+                
+                current_type="$index_type"
+                in_affected=true
+                first_index=true
+            
+            # Check if this is an affected index line
+            elif [[ "$in_affected" == "true" && "$line" =~ ^[[:space:]]+\*[[:space:]](.+)$ ]]; then
+                # Extract the index name
+                local index_name="${BASH_REMATCH[1]}"
+                
+                # Add the index to the current type
+                if [[ "$first_index" == "true" ]]; then
+                    echo "            \"$index_name\"" >> "$json_file"
+                    first_index=false
+                else
+                    echo "            ,\"$index_name\"" >> "$json_file"
+                fi
+            
+            # Check if we're done with affected indexes
+            elif [[ "$in_affected" == "true" && "$line" =~ ^$ ]]; then
+                in_affected=false
+            fi
+        done < <(grep -A 100 "Index Compatibility Summary" "$INDEX_OUTPUT")
+        
+        # Close the last type object if there was one
+        if [[ -n "$current_type" ]]; then
+            echo "          ]" >> "$json_file"
+            echo "        }" >> "$json_file"
+        fi
+        
+        # Close the incompatible_indexes array
+        echo "      ]" >> "$json_file"
+        echo "    }" >> "$json_file"
+    fi
+    
+    # Close details section
+    echo "  }" >> "$json_file"
     
     # Close JSON
     echo "}" >> "$json_file"
@@ -414,16 +643,16 @@ collect_sample_data() {
     fi
     
     # Check if the collection script exists
-    if [[ ! -f "$SCRIPT_DIR/collect_sample_data.sh" ]]; then
-        echo "Error: Sample data collection script not found: $SCRIPT_DIR/collect_sample_data.sh"
+    if [[ ! -f "$SCRIPT_DIR/mongodb_collector.sh" ]]; then
+        echo "Error: Sample data collection script not found: $SCRIPT_DIR/mongodb_collector.sh"
         return 1
     fi
     
     # Make sure the script is executable
-    chmod +x "$SCRIPT_DIR/collect_sample_data.sh"
+    chmod +x "$SCRIPT_DIR/mongodb_collector.sh"
     
     # Run the collection script
-    "$SCRIPT_DIR/collect_sample_data.sh" > "$TEMP_DIR/sample_collection_output.txt" 2>&1
+    "$SCRIPT_DIR/mongodb_collector.sh" > "$TEMP_DIR/sample_collection_output.txt" 2>&1
     
     # Check if the script ran successfully
     if [[ $? -ne 0 ]]; then
@@ -442,8 +671,8 @@ collect_sample_data() {
     echo "" >> "$SUMMARY_OUTPUT"
     
     # Set the directory for datatype assessment
-    if [[ -z "$DIR" && -z "$DATA_FILE" ]]; then
-        DIR="sample_data"
+    if [[ -z "$DIR" && -z "$FILE" ]]; then
+        DIR="sample_data/data"
     fi
     
     # Display output if not quiet
