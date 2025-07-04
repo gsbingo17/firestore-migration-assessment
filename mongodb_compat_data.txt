@@ -74,10 +74,10 @@ $rename: Yes
 $setOnInsert: Yes
 
 # Update Modifiers
-$each: No
+$each: Yes
 $position: No
 $slice:update: No
-$sort:update: No
+$sort:update: Yes
 
 # Accumulator Expressions
 $addToSet: No
