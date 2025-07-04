@@ -18,7 +18,8 @@ The assessment suite uses a smart subdirectory routing system to organize differ
 your_project/
 ├── app/                    # Application code for operator checking
 ├── data/                   # JSON files for datatype checking
-└── *.metadata.json        # Metadata files for index checking
+├── indexes.metadata.json   # Index definitions for index checking
+└── mongodb_metadata.json   # Comprehensive metadata for MongoDB instance
 ```
 
 When you specify a directory with the `--dir` parameter, the assessment suite automatically:
@@ -158,8 +159,8 @@ cp -r your-mongodb-app/* sample_data/app/
 # Place JSON data files in the data directory
 cp *.json sample_data/data/
 
-# Place metadata files in the main directory
-cp *.metadata.json sample_data/
+# Place index definitions and MongoDB metadata in the main directory
+cp indexes.metadata.json mongodb_metadata.json sample_data/
 
 # Run the assessment
 ./firestore_migration_assessment.sh --run-all --dir sample_data
