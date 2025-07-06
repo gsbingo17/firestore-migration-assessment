@@ -14,7 +14,6 @@ OUTPUT_FILE=""
 RUN_DATATYPE=false
 RUN_OPERATOR=false
 RUN_INDEX=false
-RUN_COLLECT_SAMPLES=false
 VERBOSE=false
 QUIET=false
 
@@ -52,7 +51,6 @@ usage() {
     echo "  --run-datatype            Run only datatype compatibility assessment"
     echo "  --run-operator            Run only operator compatibility assessment"
     echo "  --run-index               Run only index compatibility assessment"
-    echo "  --collect-samples         Collect sample data from MongoDB for datatype assessment"
     echo "  --verbose                 Show detailed information"
     echo "  --quiet                   Suppress progress messages and non-essential output"
     echo "  --help                    Display this help message"
@@ -91,10 +89,6 @@ while [[ $# -gt 0 ]]; do
         --output-format)
             OUTPUT_FORMAT="$2"
             shift 2
-            ;;
-        --collect-samples)
-            RUN_COLLECT_SAMPLES=true
-            shift
             ;;
         --output-file)
             OUTPUT_FILE="$2"
@@ -636,58 +630,10 @@ generate_json_report() {
     cat "$json_file"
 }
 
-# Function to collect sample data from MongoDB
-collect_sample_data() {
-    if [[ "$OUTPUT_FORMAT" == "text" && "$QUIET" == "false" ]]; then
-        echo "Collecting sample data from MongoDB..."
-    fi
-    
-    # Check if the collection script exists
-    if [[ ! -f "$SCRIPT_DIR/mongodb_collector.sh" ]]; then
-        echo "Error: Sample data collection script not found: $SCRIPT_DIR/mongodb_collector.sh"
-        return 1
-    fi
-    
-    # Make sure the script is executable
-    chmod +x "$SCRIPT_DIR/mongodb_collector.sh"
-    
-    # Run the collection script
-    "$SCRIPT_DIR/mongodb_collector.sh" > "$TEMP_DIR/sample_collection_output.txt" 2>&1
-    
-    # Check if the script ran successfully
-    if [[ $? -ne 0 ]]; then
-        echo "Error: Failed to collect sample data from MongoDB"
-        cat "$TEMP_DIR/sample_collection_output.txt"
-        return 1
-    fi
-    
-    # Extract summary information
-    local sample_files=$(grep "collection sample files created" "$TEMP_DIR/sample_collection_output.txt" | awk '{print $1}')
-    
-    # Add to summary
-    echo "MongoDB Sample Data Collection:" >> "$SUMMARY_OUTPUT"
-    echo "  Sample files created: $sample_files" >> "$SUMMARY_OUTPUT"
-    echo "  Output directory: sample_data" >> "$SUMMARY_OUTPUT"
-    echo "" >> "$SUMMARY_OUTPUT"
-    
-    # Set the directory for datatype assessment
-    if [[ -z "$DIR" && -z "$FILE" ]]; then
-        DIR="sample_data/data"
-    fi
-    
-    # Display output if not quiet
-    if [[ "$QUIET" == "false" ]]; then
-        cat "$TEMP_DIR/sample_collection_output.txt"
-    fi
-}
 
 # Run assessments
 echo "Starting Firestore Migration Assessment..." > "$SUMMARY_OUTPUT"
 echo "" >> "$SUMMARY_OUTPUT"
-
-if [[ "$RUN_COLLECT_SAMPLES" == "true" ]]; then
-    collect_sample_data
-fi
 
 if [[ "$RUN_DATATYPE" == "true" ]]; then
     run_datatype_assessment

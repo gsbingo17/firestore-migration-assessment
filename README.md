@@ -72,7 +72,6 @@ Options:
   --run-datatype            Run only datatype compatibility assessment
   --run-operator            Run only operator compatibility assessment
   --run-index               Run only index compatibility assessment
-  --collect-samples         Collect sample data from MongoDB for datatype assessment
   --verbose                 Show detailed information
   --quiet                   Suppress progress messages and non-essential output
   --help                    Display this help message
