@@ -3,6 +3,19 @@
 # This script runs MongoDB scripts to collect sample data, index definitions,
 # and instance metadata from MongoDB databases.
 # Supports authentication via MongoDB URI.
+#
+# Required MongoDB Roles/Privileges:
+# - For sample data collection: 'read' role on the databases to be sampled
+# - For index definitions: 'listIndexes' privilege on collections
+# - For metadata collection: 'listDatabases', 'dbStats', 'serverStatus', and 'collStats' privileges
+# 
+# Recommended role: 'readAnyDatabase' or at minimum:
+# - read: for reading documents
+# - dbStats: for database statistics
+# - listDatabases: for listing all databases
+# - listCollections: for listing collections in databases
+# - listIndexes: for listing indexes on collections
+# - serverStatus: for getting MongoDB server information
 
 # Default values
 OUTPUT_DIR="sample_data"
@@ -25,6 +38,16 @@ function show_usage {
     echo "  $0 --output-dir my_samples"
     echo ""
     echo "Note: If no URI is provided, the script will use the default MongoDB connection."
+    echo ""
+    echo "Required MongoDB Privileges:"
+    echo "  - read: for reading documents"
+    echo "  - dbStats: for database statistics"
+    echo "  - listDatabases: for listing all databases"
+    echo "  - listCollections: for listing collections in databases"
+    echo "  - listIndexes: for listing indexes on collections"
+    echo "  - serverStatus: for getting MongoDB server information"
+    echo ""
+    echo "Recommended role: 'readAnyDatabase' or custom role with the above privileges."
     exit 1
 }
 
@@ -75,14 +98,14 @@ fi
 echo "Step 1: Collecting sample documents..."
 echo "Samples will be saved to the $OUTPUT_DIR/data directory"
 
-# Prepare the mongosh command with or without URI
-MONGOSH_CMD="mongosh --quiet"
-if [ -n "$MONGODB_URI" ]; then
-    MONGOSH_CMD="$MONGOSH_CMD --eval \"const URI='$MONGODB_URI'\""
-fi
-
 # Run the MongoDB script and process its output
-eval "$MONGOSH_CMD --eval \"const OUTPUT_DIR='$OUTPUT_DIR'\" --file export_sample_data.js" | awk -v output_dir="$OUTPUT_DIR" '
+if [ -n "$MONGODB_URI" ]; then
+    # With URI
+    mongosh --quiet --eval "const URI='$MONGODB_URI'" --eval "const OUTPUT_DIR='$OUTPUT_DIR'" --file export_sample_data.js 
+else
+    # Without URI
+    mongosh --quiet --eval "const OUTPUT_DIR='$OUTPUT_DIR'" --file export_sample_data.js 
+fi | awk -v output_dir="$OUTPUT_DIR" '
   /^__FILE_START__:/ {
     original_file=substr($0, 16)
     # Insert "/data" before the filename part
@@ -124,12 +147,30 @@ echo "Step 2: Collecting index definitions..."
 index_file="$OUTPUT_DIR/indexes.metadata.json"
 
 # Run the index export script
-if eval "$MONGOSH_CMD --eval \"const OUTPUT_DIR='$OUTPUT_DIR'\" --file export_index.js" > "$index_file"; then
-    echo "Index definitions saved to $index_file"
-    index_success=true
+if [ -n "$MONGODB_URI" ]; then
+    # With URI
+    echo "Running index export with URI: mongosh --quiet --eval \"const URI='$MONGODB_URI'\" --file export_index.js"
+    if mongosh --quiet --eval "const URI='$MONGODB_URI'" --file export_index.js > "$index_file" 2> /tmp/index_error.log; then
+        echo "Index definitions saved to $index_file"
+        index_success=true
+    else
+        echo "Warning: Failed to collect index definitions. Check MongoDB connection and permissions."
+        echo "Error details:"
+        cat /tmp/index_error.log
+        index_success=false
+    fi
 else
-    echo "Warning: Failed to collect index definitions. Check MongoDB connection and permissions."
-    index_success=false
+    # Without URI
+    echo "Running index export without URI: mongosh --quiet --file export_index.js"
+    if mongosh --quiet --file export_index.js > "$index_file" 2> /tmp/index_error.log; then
+        echo "Index definitions saved to $index_file"
+        index_success=true
+    else
+        echo "Warning: Failed to collect index definitions. Check MongoDB connection and permissions."
+        echo "Error details:"
+        cat /tmp/index_error.log
+        index_success=false
+    fi
 fi
 
 # Step 3: Collect MongoDB instance metadata
@@ -140,12 +181,30 @@ echo "Step 3: Collecting MongoDB instance metadata..."
 metadata_file="$OUTPUT_DIR/mongodb_metadata.json"
 
 # Run the metadata export script
-if eval "$MONGOSH_CMD --eval \"const OUTPUT_DIR='$OUTPUT_DIR'\" --file export_metadata.js" > "$metadata_file"; then
-    echo "MongoDB instance metadata saved to $metadata_file"
-    metadata_success=true
+if [ -n "$MONGODB_URI" ]; then
+    # With URI
+    echo "Running metadata export with URI: mongosh --quiet --eval \"const URI='$MONGODB_URI'\" --file export_metadata.js"
+    if mongosh --quiet --eval "const URI='$MONGODB_URI'" --file export_metadata.js > "$metadata_file" 2> /tmp/metadata_error.log; then
+        echo "MongoDB instance metadata saved to $metadata_file"
+        metadata_success=true
+    else
+        echo "Warning: Failed to collect MongoDB metadata. Check MongoDB connection and permissions."
+        echo "Error details:"
+        cat /tmp/metadata_error.log
+        metadata_success=false
+    fi
 else
-    echo "Warning: Failed to collect MongoDB metadata. Check MongoDB connection and permissions."
-    metadata_success=false
+    # Without URI
+    echo "Running metadata export without URI: mongosh --quiet --file export_metadata.js"
+    if mongosh --quiet --file export_metadata.js > "$metadata_file" 2> /tmp/metadata_error.log; then
+        echo "MongoDB instance metadata saved to $metadata_file"
+        metadata_success=true
+    else
+        echo "Warning: Failed to collect MongoDB metadata. Check MongoDB connection and permissions."
+        echo "Error details:"
+        cat /tmp/metadata_error.log
+        metadata_success=false
+    fi
 fi
 
 # Summary

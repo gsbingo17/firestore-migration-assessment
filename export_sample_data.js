@@ -42,9 +42,20 @@ try {
         print(`Connecting to MongoDB using provided URI...`);
         // Use the Mongo constructor to create a new client with the URI
         mongoClient = new Mongo(URI);
+        
+        // Extract database name from URI or use "admin" as default
+        let dbName = "admin";
+        if (URI.includes("/")) {
+            const uriParts = URI.split("/");
+            if (uriParts.length > 3 && uriParts[3] !== "") {
+                // Extract database name, removing any query parameters
+                dbName = uriParts[3].split("?")[0];
+            }
+        }
+        
         // Get the database from the client
-        mongoDb = mongoClient.getDB("");
-        print(`Connected successfully using URI`);
+        mongoDb = mongoClient.getDB(dbName);
+        print(`Connected successfully to database: ${dbName}`);
     } else {
         // Use the default connection
         print(`Using default MongoDB connection...`);

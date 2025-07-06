@@ -107,6 +107,48 @@ Options:
 ./firestore_migration_assessment.sh --run-all --dir sample_data
 ```
 
+### Required MongoDB Privileges
+
+The MongoDB collector script requires certain privileges to collect data, index definitions, and metadata:
+
+| Operation | Required Privileges |
+|-----------|---------------------|
+| Sample data collection | `read` on target databases |
+| Index definitions | `listIndexes` on collections |
+| Metadata collection | `listDatabases`, `dbStats`, `serverStatus`, `collStats` |
+
+The recommended MongoDB role is `readAnyDatabase`, which provides all the necessary privileges. If you need to create a custom role with minimal permissions, include:
+
+- `read`: For reading documents
+- `dbStats`: For database statistics
+- `listDatabases`: For listing all databases
+- `listCollections`: For listing collections in databases
+- `listIndexes`: For listing indexes on collections
+- `serverStatus`: For getting MongoDB server information
+
+Example of creating a custom role with the required privileges:
+
+```javascript
+db.createRole({
+  role: "firestoreMigrationAssessment",
+  privileges: [
+    { resource: { cluster: true }, actions: [ "listDatabases", "serverStatus" ] },
+    { resource: { db: "", collection: "" }, actions: [ "find", "listCollections", "listIndexes", "dbStats", "collStats" ] }
+  ],
+  roles: []
+})
+```
+
+Then assign this role to a user:
+
+```javascript
+db.createUser({
+  user: "migrationUser",
+  pwd: "password",
+  roles: [ { role: "firestoreMigrationAssessment", db: "admin" } ]
+})
+```
+
 ### Run Specific Assessment Types
 
 #### Directory-Based Assessment
