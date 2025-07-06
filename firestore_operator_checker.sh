@@ -396,13 +396,51 @@ function scan_file_for_operators {
         if [ -z "$operator_name" ]; then
             # For the bare $ operator, use a pattern that looks for the positional operator
             # This pattern looks for field references ending with $, which is how the positional operator is typically used
-            search_pattern=\"[^\"]*\.\\\$[^\"]*\"
+            # Updated pattern to be more specific and avoid false positives from BSON formats like $date, $db, $uuid
+            search_pattern="\"[^\"]*\.\\\$(\"|[^a-zA-Z0-9_]|\$)\""
         fi
         
         # Check if operator is unsupported
         if [ "$support" = "No" ]; then
             # Search for this operator in the file
-            if grep -q "$search_pattern" "$file"; then
+            if [ -z "$operator_name" ]; then
+                # For bare $ operator, use the special pattern
+                if grep -q -E "$search_pattern" "$file"; then
+                    # Handle bare $ operator processing
+                    # Create a temporary file to store matching lines for this operator
+                    rm -f /tmp/mongodb_operator_matches.txt
+                    touch /tmp/mongodb_operator_matches.txt
+                    
+                    # Get line numbers with grep
+                    grep -n "\$" "$file" | while read -r match; do
+                        # Extract line number and content
+                        local line_num=$(echo "$match" | cut -d':' -f1)
+                        local line_content=$(echo "$match" | cut -d':' -f2-)
+                        
+                        # Skip comment lines (lines starting with //)
+                        if echo "$line_content" | grep -q "^[[:space:]]*//"; then
+                            continue
+                        fi
+                        
+                        # For the bare $ operator, directly check for the positional operator pattern
+                        # and skip all context verification
+                        # Updated pattern to be more specific and avoid false positives from BSON formats like $date, $db, $uuid
+                        if echo "$line_content" | grep -q -E "\"[^\"]*\.\\\$(\"|[^a-zA-Z0-9_]|$)\""; then
+                            # Store for temporary display
+                            echo "      Line $line_num: $line_content" >> /tmp/mongodb_operator_matches.txt
+                            # Store for summary report
+                            echo "${operator_name}:$file:$line_num" >> /tmp/mongodb_compat_locations.txt
+                        fi
+                    done
+                    
+                    # Check if we found any actual occurrences
+                    if [ -s /tmp/mongodb_operator_matches.txt ]; then
+                        echo "  Found unsupported operator: \$"
+                        echo "    Line numbers:"
+                        cat /tmp/mongodb_operator_matches.txt
+                    fi
+                fi
+            elif grep -q "\$${operator_name}" "$file"; then
                 # Create a temporary file to store matching lines for this operator
                 rm -f /tmp/mongodb_operator_matches.txt
                 touch /tmp/mongodb_operator_matches.txt
@@ -422,7 +460,8 @@ function scan_file_for_operators {
                     if [ -z "$operator_name" ]; then
                         # For the bare $ operator, directly check for the positional operator pattern
                         # and skip all context verification
-                        if echo "$line_content" | grep -q -E "\"[^\"]*\.\\\$[^\"]*\""; then
+                        # Updated pattern to be more specific and avoid false positives from BSON formats like $date, $db, $uuid
+                        if echo "$line_content" | grep -q -E "\"[^\"]*\.\\\$(\"|[^a-zA-Z0-9_]|$)\""; then
                             # Store for temporary display
                             echo "      Line $line_num: $line_content" >> /tmp/mongodb_operator_matches.txt
                             # Store for summary report
