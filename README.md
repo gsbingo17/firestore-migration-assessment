@@ -10,6 +10,12 @@ The Firestore Migration Assessment Suite provides a comprehensive analysis of po
 2. **Operator Compatibility**: Identifies MongoDB query operators that are not supported in Firestore
 3. **Index Compatibility**: Checks MongoDB index structures for compatibility with Firestore
 
+## Supported Databases
+
+- Self-hosted MongoDB
+- MongoDB Atlas
+- AWS DocumentDB (with MongoDB compatibility)
+
 ## Directory Structure and Default Behavior
 
 The assessment suite uses a smart subdirectory routing system to organize different types of files:

@@ -57,9 +57,12 @@ try {
         let dbName = "admin";
         if (URI.includes("/")) {
             const uriParts = URI.split("/");
-            if (uriParts.length > 3 && uriParts[3] !== "") {
+            if (uriParts.length > 3) {
                 // Extract database name, removing any query parameters
-                dbName = uriParts[3].split("?")[0];
+                const dbPart = uriParts[3].split("?")[0];
+                if (dbPart !== "") {
+                    dbName = dbPart;
+                }
             }
         }
         
