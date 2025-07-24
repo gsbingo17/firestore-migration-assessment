@@ -1,241 +1,248 @@
-# MongoDB Sample Data and Index Collection for Firestore Migration
+# MongoDB Data Collector for Firestore Migration Assessment
 
-This tool collects sample documents and index definitions from MongoDB databases and collections to help assess compatibility with Firestore. It works alongside the Firestore Migration Assessment Suite to identify potential data type issues and index compatibility before migration. It supports authentication via MongoDB URI for connecting to secured MongoDB instances.
+This tool collects sample data, index definitions, and metadata from a MongoDB instance to support the Firestore Migration Assessment process. It's designed to gather all the necessary information with minimal configuration.
 
 ## Overview
 
-When migrating from MongoDB to Firestore, certain BSON data types are not supported in Firestore. The `firestore_datatype_checker.sh` script can analyze JSON data to identify these unsupported types, but it needs sample data to work with. These scripts automate the collection of representative sample data from your MongoDB instance.
+The MongoDB Data Collector performs three main tasks:
 
-## Components
+1. **Sample Data Collection**: Extracts sample documents from each collection in your MongoDB databases
+2. **Index Definition Collection**: Captures all index definitions across all collections
+3. **Metadata Collection**: Gathers comprehensive metadata about your MongoDB instance, databases, and collections
 
-1. **`export_sample_data.js`** - MongoDB script that samples documents from all collections
-2. **`export_index.js`** - MongoDB script that collects index definitions from all collections
-3. **`export_metadata.js`** - MongoDB script that collects comprehensive metadata about the MongoDB instance
-4. **`mongodb_collector.sh`** - Shell wrapper script that runs all scripts and processes their output
+All collected data is saved to a directory structure that's compatible with the Firestore Migration Assessment Suite.
 
-## Unsupported Types Detected
+## Requirements
 
-The collected samples can be analyzed to detect these unsupported BSON types:
+- Bash shell
+- MongoDB Shell (mongosh) installed and in your PATH
+- Read access to your MongoDB instance
+- Appropriate MongoDB privileges (see below)
 
-- **DBPointer** (`$dbPointer`)
-- **DBRef** (`$ref` + `$id`)
-- **JavaScript** (`$code` without `$scope`)
-- **JavaScript with scope** (`$code` + `$scope`)
-- **Symbol** (`$symbol`)
-- **Undefined** (`$undefined`)
+## Required MongoDB Privileges
+
+The collector script requires specific MongoDB privileges to function properly:
+
+| Operation | Required Privileges | Description |
+|-----------|---------------------|-------------|
+| Sample data collection | `read` | Ability to read documents from collections |
+| Index definitions | `listIndexes` | Ability to list indexes on collections |
+| Metadata collection | `listDatabases`, `dbStats`, `serverStatus`, `collStats` | Ability to list databases and get statistics |
+
+### Recommended Role
+
+The simplest approach is to use the built-in `readAnyDatabase` role, which provides all the necessary privileges:
+
+```javascript
+// Create a user with readAnyDatabase role
+db.createUser({
+  user: "migrationUser",
+  pwd: "password",
+  roles: [ { role: "readAnyDatabase", db: "admin" } ]
+})
+```
+
+### Minimal Custom Role
+
+If you need to create a custom role with minimal permissions:
+
+```javascript
+// Create a custom role with only the required privileges
+db.createRole({
+  role: "firestoreMigrationAssessment",
+  privileges: [
+    { resource: { cluster: true }, actions: [ "listDatabases", "serverStatus" ] },
+    { resource: { db: "", collection: "" }, actions: [ "find", "listCollections", "listIndexes", "dbStats", "collStats" ] }
+  ],
+  roles: []
+})
+
+// Assign the custom role to a user
+db.createUser({
+  user: "migrationUser",
+  pwd: "password",
+  roles: [ { role: "firestoreMigrationAssessment", db: "admin" } ]
+})
+```
+
+## Installation
+
+1. Make sure the script is executable:
+
+```bash
+chmod +x mongodb_collector.sh
+```
+
+2. Ensure mongosh is installed and in your PATH:
+
+```bash
+mongosh --version
+```
 
 ## Usage
 
-### Prerequisites
+```
+Usage: ./mongodb_collector.sh [OPTIONS]
 
-- MongoDB Shell (mongosh) installed and in your PATH
-- Access to your MongoDB instance
-- Bash shell environment
+Options:
+  --uri URI                MongoDB connection URI with authentication
+  --output-dir DIR         Directory to store output files (default: sample_data)
+  --verbose                Show detailed connection information
+  --help                   Display this help message
+```
 
 ### Basic Usage
 
-1. Run the collection script:
-
 ```bash
+# Collect data from a local MongoDB instance
 ./mongodb_collector.sh
-```
 
-This will:
-- Connect to your MongoDB instance
-- Sample 10 random documents from each collection
-- Create separate JSON files in the `sample_data/data` directory named `{database}_{collection}_sample.json`
-- Collect index definitions from all collections and save them to `sample_data/indexes.metadata.json`
-- Collect comprehensive MongoDB instance metadata and save it to `sample_data/mongodb_metadata.json`
-
-### With Authentication
-
-To connect to a MongoDB instance that requires authentication:
-
-```bash
+# Collect data from a remote MongoDB instance with authentication
 ./mongodb_collector.sh --uri "mongodb://username:password@host:port/database"
+
+# Specify a custom output directory
+./mongodb_collector.sh --uri "mongodb://localhost:27017" --output-dir my_mongodb_data
+
+# Show detailed connection information
+./mongodb_collector.sh --uri "mongodb://localhost:27017" --verbose
 ```
 
-For MongoDB Atlas:
+## Output Structure
 
-```bash
-./mongodb_collector.sh --uri "mongodb+srv://username:password@cluster.mongodb.net/database"
+The collector creates the following directory structure:
+
+```
+output_dir/
+├── data/
+│   ├── database1_collection1_sample.json
+│   ├── database1_collection2_sample.json
+│   ├── database2_collection1_sample.json
+│   └── ...
+├── indexes.metadata.json
+└── mongodb_metadata.json
 ```
 
-### Additional Options
+- **data/**: Contains sample documents from each collection in NDJSON format
+- **indexes.metadata.json**: Contains all index definitions across all collections
+- **mongodb_metadata.json**: Contains comprehensive metadata about your MongoDB instance
 
-```bash
-./mongodb_collector.sh --help
-```
+## Sample Data Format
 
-Shows all available options:
+Sample data is saved in NDJSON (Newline Delimited JSON) format, with each line containing one document in MongoDB Extended JSON format. This preserves all MongoDB-specific data types.
 
-- `--uri URI`: MongoDB connection URI with authentication
-- `--output-dir DIR`: Directory to store output files (default: sample_data)
-- `--verbose`: Show detailed connection information
-- `--help`: Display help message
-
-2. Analyze the samples with the data type checker:
-
-```bash
-./firestore_datatype_checker.sh --dir sample_data
-```
-
-3. Analyze the indexes with the index compatibility checker:
-
-```bash
-./index_compat_checker.sh --file sample_data/indexes.metadata.json
-```
-
-### Advanced Usage
-
-#### Direct Script Usage
-
-You can also run the scripts directly with mongosh, which gives you more control over the connection parameters:
-
-#### Without Authentication
-
-```bash
-# For indexes and metadata (simple redirection)
-mongosh --quiet --file export_index.js > indexes.metadata.json
-mongosh --quiet --file export_metadata.js > mongodb_metadata.json
-
-# For sample data (requires AWK processing)
-# DO NOT copy-paste this directly - use the wrapper script instead
-# The sample data script requires special processing to create multiple files
-```
-
-#### With Authentication
-
-```bash
-# For indexes and metadata (simple redirection)
-mongosh --quiet --eval "const URI='mongodb://username:password@host:port/database'" --file export_index.js > indexes.metadata.json
-mongosh --quiet --eval "const URI='mongodb://username:password@host:port/database'" --file export_metadata.js > mongodb_metadata.json
-
-# For sample data, always use the wrapper script:
-./mongodb_collector.sh --uri "mongodb://username:password@host:port/database"
-```
-
-#### The Actual AWK Script (For Reference Only)
-
-If you're curious about how the sample data processing works, here's the actual AWK script used by the wrapper:
-
-```bash
-mongosh --quiet --file export_sample_data.js | awk '
-  /^__FILE_START__:/ {
-    file=substr($0, 16)
-    in_file=1
-    next
-  }
-  /^__FILE_END__/ {
-    in_file=0
-    next
-  }
-  in_file {
-    print > file
-  }
-  !in_file && !/^#/ {
-    print
-  }
-'
-```
-
-This script processes special markers in the output to create multiple files, which is why we recommend using the wrapper script instead of running it directly.
-
-#### Customizing Sample Size
-
-To change the number of documents sampled per collection, edit the `SAMPLE_SIZE` constant in `export_sample_data.js`:
-
-```javascript
-// Configuration
-const SAMPLE_SIZE = 20;  // Change from default 10 to 20
-```
-
-#### Changing Output Directory
-
-The recommended way to change the output directory is to use the `--output-dir` parameter:
-
-```bash
-./mongodb_collector.sh --output-dir my_custom_dir
-```
-
-This will:
-- Create sample files in `my_custom_dir/data/`
-- Save index definitions to `my_custom_dir/indexes.metadata.json`
-- Save MongoDB metadata to `my_custom_dir/mongodb_metadata.json`
-
-You can also edit the default output directory in the script if needed:
-
-```bash
-# In mongodb_collector.sh
-OUTPUT_DIR="my_samples"  # Change the default from "sample_data"
-```
-
-## Output Format
-
-### Sample Data Files
-
-Each sample file uses the exact same format as mongoexport - NDJSON (Newline Delimited JSON) with one document per line:
-
+Example:
 ```json
-{"_id":{"$oid":"507f1f77bcf86cd799439011"},"name":"John","email":"john@example.com"}
-{"_id":{"$oid":"507f1f77bcf86cd799439012"},"name":"Jane","email":"jane@example.com"}
+{"_id":{"$oid":"5f8d7e9b2b3a4c1d2e3f4a5b"},"name":"John Doe","age":30,"created":{"$date":"2020-10-19T12:34:56.789Z"}}
+{"_id":{"$oid":"5f8d7e9b2b3a4c1d2e3f4a5c"},"name":"Jane Smith","age":25,"created":{"$date":"2020-10-19T12:45:00.000Z"}}
 ```
 
-This format is identical to what mongoexport produces, with BSON types properly represented in extended JSON format:
+## Index Definitions Format
 
-- **ObjectId**: `{"$oid": "507f1f77bcf86cd799439011"}`
-- **Date**: `{"$date": "2020-01-01T00:00:00Z"}`
-- **DBRef**: `{"$ref": "collection", "$id": {"$oid": "..."}, "$db": "database"}`
-- **Symbol**: `{"$symbol": "symbol-value"}`
-- **Binary**: `{"$binary": {"base64": "...", "subType": "00"}}`
-- **JavaScript**: `{"$code": "function() { return 1; }"}`
-- **JavaScript with Scope**: `{"$code": "...", "$scope": {...}}`
-- **Undefined**: `{"$undefined": true}`
+Index definitions are saved in a JSON file containing an array of all indexes across all collections, with their complete configuration.
 
-### MongoDB Metadata
+Example:
+```json
+{
+  "metadata": {
+    "timestamp": "2023-07-06T12:30:00.000Z",
+    "source": "MongoDB"
+  },
+  "options": {},
+  "indexes": [
+    {
+      "v": 2,
+      "key": { "_id": 1 },
+      "name": "_id_",
+      "ns": "database1.collection1"
+    },
+    {
+      "v": 2,
+      "key": { "email": 1 },
+      "name": "email_1",
+      "unique": true,
+      "ns": "database1.users"
+    }
+  ]
+}
+```
 
-The metadata file (`mongodb_metadata.json`) contains comprehensive information about your MongoDB instance:
+## Metadata Format
 
-- **MongoDB Version and Build Information**: Version, git version, allocator, JavaScript engine, etc.
-- **Server Status**: Host, process, uptime, local time, etc.
-- **Storage Engine**: The storage engine used by MongoDB
-- **Database Information**: For each database, includes:
-  - Size on disk, number of collections, total documents
-  - Storage statistics (data size, storage size, index size)
-- **Collection Information**: For each collection, includes:
-  - Document count, average object size, storage size
-  - Capped collection status
-  - Index information
-- **Index Information**: For each index, includes:
-  - Index keys, uniqueness, sparsity
-  - Special index properties (text indexes, TTL indexes, etc.)
+Metadata is saved in a comprehensive JSON file containing detailed information about your MongoDB instance, databases, collections, and indexes.
 
-## Integration with Migration Assessment Suite
-
-These scripts are designed to work with the Firestore Migration Assessment Suite. After collecting samples and indexes, you can run the full assessment:
-
-```bash
-./firestore_migration_assessment.sh --dir sample_data --run-datatype --run-index
+Example:
+```json
+{
+  "timestamp": "2023-07-06T12:30:00.000Z",
+  "mongodb": {
+    "version": "6.0.6",
+    "buildInfo": { ... },
+    "serverStatus": { ... },
+    "storageEngine": "wiredTiger"
+  },
+  "databases": [
+    {
+      "name": "database1",
+      "sizeOnDisk": 1048576,
+      "empty": false,
+      "collections": [ ... ],
+      "stats": { ... },
+      "summary": { ... }
+    }
+  ],
+  "summary": {
+    "totalDatabases": 1,
+    "totalCollections": 5,
+    "totalIndexes": 10,
+    "totalSize": 5242880,
+    "totalDataSize": 3145728,
+    "totalStorageSize": 4194304
+  }
+}
 ```
 
 ## Troubleshooting
 
-### No Files Created
+### Connection Issues
 
-If no sample files are created:
-- Check your MongoDB connection
-- Verify you have read permissions on the databases
-- Ensure the collections contain documents
+If you encounter connection issues:
 
-### MongoDB Authentication
+1. Verify that MongoDB is running and accessible
+2. Check that the URI is correct
+3. Ensure the user has the necessary privileges
+4. Try connecting manually with mongosh:
+   ```bash
+   mongosh "mongodb://username:password@host:port/database"
+   ```
 
-If your MongoDB instance requires authentication, always use the `--uri` parameter with the wrapper script:
+### Permission Issues
+
+If you encounter permission issues:
+
+1. Verify that the user has the necessary privileges
+2. Try running the script with a user that has the `readAnyDatabase` role
+3. Check the MongoDB logs for permission errors
+
+### Empty Output
+
+If the script runs but produces empty output:
+
+1. Verify that your MongoDB instance has databases and collections
+2. Check that the user has access to those databases
+3. Run with the `--verbose` flag to see more detailed output
+
+## Integration with Firestore Migration Assessment
+
+After collecting the data, you can run the Firestore Migration Assessment Suite on the collected data:
 
 ```bash
-./mongodb_collector.sh --uri "mongodb://username:password@hostname:port/database"
-```
+# Run all assessments on the collected data
+./firestore_migration_assessment.sh --run-all --dir sample_data
 
-This is the recommended approach as it properly handles authentication for all three scripts (sample data, indexes, and metadata).
+# Run specific assessments
+./firestore_migration_assessment.sh --run-datatype --dir sample_data
+./firestore_migration_assessment.sh --run-index --dir sample_data
+```
 
 ## License
 
