@@ -105,6 +105,9 @@ Options:
 
 # Show detailed connection information
 ./mongodb_collector.sh --uri "mongodb://localhost:27017" --verbose
+
+# Collect data from a AWS DocumentDB instance using [SSH Tunnel](https://docs.aws.amazon.com/documentdb/latest/developerguide/connect-from-outside-a-vpc.html)
+./mongodb_collector.sh --uri "mongodb://username:password@127.0.0.1:27018/?directConnection=true&serverSelectionTimeoutMS=2000&tls=true&tlsAllowInvalidHostnames=true&tlsCAFile=global-bundle.pem" --output-dir aws_data
 ```
 
 ## Output Structure
