@@ -101,7 +101,7 @@ echo "Samples will be saved to the $OUTPUT_DIR/data directory"
 # Run the MongoDB script and process its output
 if [ -n "$MONGODB_URI" ]; then
     # With URI
-    mongosh --quiet --eval "const URI='$MONGODB_URI'" --eval "const OUTPUT_DIR='$OUTPUT_DIR'" --file export_sample_data.js 
+    mongosh --quiet "$MONGODB_URI" --eval "const OUTPUT_DIR='$OUTPUT_DIR'" --file export_sample_data.js 
 else
     # Without URI
     mongosh --quiet --eval "const OUTPUT_DIR='$OUTPUT_DIR'" --file export_sample_data.js 
@@ -149,8 +149,8 @@ index_file="$OUTPUT_DIR/indexes.metadata.json"
 # Run the index export script
 if [ -n "$MONGODB_URI" ]; then
     # With URI
-    echo "Running index export with URI: mongosh --quiet --eval \"const URI='$MONGODB_URI'\" --file export_index.js"
-    if mongosh --quiet --eval "const URI='$MONGODB_URI'" --file export_index.js > "$index_file" 2> /tmp/index_error.log; then
+    echo "Running index export with URI: mongosh --quiet \"$MONGODB_URI\" --file export_index.js"
+    if mongosh --quiet "$MONGODB_URI" --file export_index.js > "$index_file" 2> /tmp/index_error.log; then
         echo "Index definitions saved to $index_file"
         index_success=true
     else
@@ -183,8 +183,8 @@ metadata_file="$OUTPUT_DIR/mongodb_metadata.json"
 # Run the metadata export script
 if [ -n "$MONGODB_URI" ]; then
     # With URI
-    echo "Running metadata export with URI: mongosh --quiet --eval \"const URI='$MONGODB_URI'\" --file export_metadata.js"
-    if mongosh --quiet --eval "const URI='$MONGODB_URI'" --file export_metadata.js > "$metadata_file" 2> /tmp/metadata_error.log; then
+    echo "Running metadata export with URI: mongosh --quiet \"$MONGODB_URI\" --file export_metadata.js"
+    if mongosh --quiet "$MONGODB_URI" --file export_metadata.js > "$metadata_file" 2> /tmp/metadata_error.log; then
         echo "MongoDB instance metadata saved to $metadata_file"
         metadata_success=true
     else

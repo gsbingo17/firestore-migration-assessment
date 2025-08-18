@@ -32,43 +32,9 @@ let totalCollections = 0;
 let totalDocuments = 0;
 let skippedCollections = 0;
 
-// Check if a URI was provided via command line
-// The URI can be passed using --eval "const URI='mongodb://username:password@host:port/database'"
-let mongoClient;
-let mongoDb;
-
-try {
-    if (typeof URI !== 'undefined' && URI) {
-        print(`Connecting to MongoDB using provided URI...`);
-        // Use the Mongo constructor to create a new client with the URI
-        mongoClient = new Mongo(URI);
-        
-        // Extract database name from URI or use "admin" as default
-        let dbName = "admin";
-        if (URI.includes("/")) {
-            const uriParts = URI.split("/");
-            if (uriParts.length > 3) {
-                // Extract database name, removing any query parameters
-                const dbPart = uriParts[3].split("?")[0];
-                if (dbPart !== "") {
-                    dbName = dbPart;
-                }
-            }
-        }
-        
-        // Get the database from the client
-        mongoDb = mongoClient.getDB(dbName);
-        print(`Connected successfully to database: ${dbName}`);
-    } else {
-        // Use the default connection
-        print(`Using default MongoDB connection...`);
-        mongoDb = db;
-    }
-} catch (err) {
-    print(`Error connecting to MongoDB: ${err.message}`);
-    // Exit with error
-    quit(1);
-}
+// Use the default connection (mongosh handles the URI connection automatically)
+print(`Using MongoDB connection provided by mongosh...`);
+const mongoDb = db;
 
 // Get all databases (excluding admin, local, and config)
 const dbs = mongoDb.adminCommand('listDatabases').databases
@@ -190,8 +156,4 @@ print(`
 # '
 `);
 
-// Close the client connection if we created one
-if (mongoClient && typeof URI !== 'undefined' && URI) {
-    mongoClient.close();
-    print("MongoDB connection closed");
-}
+// Connection is managed by mongosh automatically
