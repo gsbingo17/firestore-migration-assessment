@@ -1,4 +1,4 @@
-# Format: operator[:context]: support_status (Yes/No)
+# Format: operator: support_status (Yes/No)
 # Data simplified from Google Cloud documentation
 # https://cloud.google.com/firestore/mongodb-compatibility/docs/supported-features-80
 
@@ -35,7 +35,7 @@ $expr: Yes
 $jsonSchema: No
 $mod: Yes
 $regex: Yes
-$text: No
+$text: Yes
 $where: No
 
 # Logical Operators
@@ -45,21 +45,20 @@ $not: Yes
 $or: Yes
 
 # Projection Operators
+$: Yes
 $elemMatch: Yes
 $meta: No
-$slice:projection: Yes
-
-# Positional Operator (no context)
-$: No
+$slice: Yes
 
 # Update Operators - Array Operators
-$[]: No
-$[<identifier>]: No
-$addToSet: No
-$pop: No
+$: Yes
+$[]: Yes
+$[<identifier>]: Yes
+$addToSet: Yes
+$pop: Yes
 $pull: Yes
-$pullAll: No
-$push:update: Yes
+$pullAll: Yes
+$push: Yes
 
 # Update Operators - Bitwise Operators
 $bit: Yes
@@ -71,60 +70,75 @@ $max: Yes
 $min: Yes
 $mul: Yes
 $rename: Yes
+$set: Yes
 $setOnInsert: Yes
+$unSet: Yes
 
-# Update Modifiers
+# Update Operators - Update Modifiers
 $each: Yes
-$position: No
-$slice:update: No
-$sort:update: Yes
+$position: Yes
+$slice: Yes
+$sort: Yes
 
-# Accumulator Expressions
-$addToSet: No
+# Accumulator Expressions (Aggregation)
+$accumulator: No
+$addToSet: Yes
 $avg: Yes
+$bottom: No
+$bottomN: No
 $count: Yes
 $first: Yes
+$firstN: No
 $last: Yes
+$lastN: No
 $max: Yes
 $min: Yes
-$push:accumulator: Yes
+$minN: No
+$push: Yes
 $stdDevPop: No
 $stdDevSamp: No
 $sum: Yes
+$top: No
+$topN: No
 
-# Arithmetic Operators
+# Arithmetic Operators (Aggregation)
 $abs: Yes
 $add: Yes
 $ceil: Yes
 $divide: Yes
-$exp: No
+$exp: Yes
 $floor: Yes
-$ln: No
-$log: No
-$log10: No
+$ln: Yes
+$log: Yes
+$log10: Yes
 $mod: Yes
 $multiply: Yes
-$pow: No
-$sqrt: No
+$pow: Yes
+$round: Yes
+$sqrt: Yes
 $subtract: Yes
-$trunc: No
+$trunc: Yes
 
 # Array Operators (Aggregation)
 $arrayElemAt: Yes
 $arrayToObject: Yes
 $concatArrays: Yes
-$filter: No
-$firstN: No
+$filter: Yes
+$firstN: Yes
 $in: Yes
-$indexOfArray: No
+$indexOfArray: Yes
 $isArray: Yes
-$objectToArray: No
-$range: No
-$reduce: No
+$lastN: Yes
+$maxN: Yes
+$minN: Yes
+$objectToArray: Yes
+$range: Yes
+$reduce: Yes
 $reverseArray: Yes
 $size: Yes
-$slice:aggregation: Yes
-$zip: No
+$slice: Yes
+$sortArray: Yes
+$zip: Yes
 
 # Boolean Operators
 $and: Yes
@@ -145,11 +159,19 @@ $cond: Yes
 $ifNull: Yes
 $switch: Yes
 
+# Data Size Operators
+$binarySize: Yes
+$bsonSize: Yes
+
 # Date Operators
+$dateAdd: No
+$dateDiff: No
 $dateFromParts: No
 $dateFromString: Yes
+$dateSubtract: No
 $dateToParts: Yes
 $dateToString: Yes
+$dateTrunc: Yes
 $dayOfMonth: Yes
 $dayOfWeek: Yes
 $dayOfYear: Yes
@@ -161,30 +183,38 @@ $millisecond: Yes
 $minute: Yes
 $month: Yes
 $second: Yes
+$tsIncrement: No
+$tsSecond: No
 $week: Yes
 $year: Yes
 
 # Miscellaneous Operators
+$getField: Yes
 $literal: Yes
-$mergeObjects: No
+$mergeObjects: Yes
 $natural: No
+$rand: No
+$sampleRate: No
 
 # Set Operators
-$allElementsTrue: No
-$anyElementTrue: No
-$setDifference: No
-$setEquals: No
-$setIntersection: No
-$setIsSubset: No
-$setUnion: No
+$allElementsTrue: Yes
+$anyElementTrue: Yes
+$setDifference: Yes
+$setEquals: Yes
+$setIntersection: Yes
+$setIsSubset: Yes
+$setUnion: Yes
+$setWindowFields: No
 
 # Stage operators
 $addFields: Yes
-$bucket: No
+$bucket: Yes
 $bucketAuto: No
+$changeStreams: No
 $collStats: No
 $count: Yes
 $currentOp: No
+$documents: Yes
 $facet: No
 $geoNear: No
 $graphLookup: No
@@ -193,18 +223,22 @@ $indexStats: No
 $limit: Yes
 $listLocalSessions: No
 $listSessions: No
-$lookup: Yes
+$lookup: No
 $match: Yes
+$merge: No
 $out: No
+$planCacheStats: No
 $project: Yes
 $redact: No
 $replaceRoot: Yes
 $replaceWith: Yes
 $sample: No
 $set: Yes
+$setWindowFields: No
 $skip: Yes
-$sort:stage: Yes
-$sortByCount: No
+$sort: Yes
+$sortByCount: Yes
+$unionWith: No
 $unset: Yes
 $unwind: Yes
 
@@ -212,6 +246,13 @@ $unwind: Yes
 $concat: Yes
 $indexOfBytes: Yes
 $indexOfCP: Yes
+$ltrim: Yes
+$regexFind: Yes
+$regexFindAll: Yes
+$regexMatch: Yes
+$replaceAll: Yes
+$replaceOne: Yes
+$rtrim: Yes
 $split: Yes
 $strcasecmp: Yes
 $strLenBytes: Yes
@@ -221,25 +262,55 @@ $substrBytes: Yes
 $substrCP: Yes
 $toLower: Yes
 $toUpper: Yes
+$trim: Yes
 
 # System Variables
-$CURRENT: No
-$DESCEND: No
-$KEEP: No
-$PRUNE: No
-$REMOVE: Yes
-$ROOT: Yes
-$clusterTime: No
+$$CLUSTERTIME: No
+$$CURRENT: No
+$$DESCEND: No
+$$KEEP: No
+$$NOW: Yes
+$$PRUNE: No
+$$REMOVE: Yes
+$$ROOT: Yes
 
 # Text Search Operators
 $meta: No
+$search No
+
+# Trigonometry Operators
+$acos: No
+$acosh: No
+$asin: No
+$asinh: No
+$atan: No
+$atan2: No
+$atanh: No
+$cos: No
+$cosh: No
+$degreesToRadians: No
+$radiansToDegrees: No
+$sin: No
+$sinh: No
+$tan: No
+$tanh: No
 
 # Type conversion operators
-$convert: No
+$convert: Yes
+$isNumber: Yes
+$toBool: Yes
+$toDate: Yes
+$toDecimal: Yes
+$toDouble: Yes
+$toInt: Yes
+$toLong: Yes
+$toObjectId: Yes
+$toString: Yes
+$type: Yes
 
 # Variable Operators
-$let: No
-$map: No
+$let: Yes
+$map: Yes
 
 # Geospatial Operators
 $box: No
@@ -249,8 +320,52 @@ $geometry: No
 $maxDistance: No
 $minDistance: No
 $polygon: No
-$geoWithin: No
+$uniqueDocs: No
+
+# Query Selectors
 $geoIntersects: No
+$geoWithin: No
 $near: No
 $nearSphere: No
 $uniqueDocs: No
+
+# Query and Write Operations
+watch: No
+delete: Yes
+eval: No
+find: Yes
+findAndModify: Yes
+getLastError: Yes
+getMore: Yes
+getPrevError: No
+GridFS: No
+insert: Yes
+parallelCollectionScan: No
+replaceOne: No
+resetError: No
+update: Yes
+
+# Session Commands
+abortTransaction: Yes
+commitTransaction: Yes
+endSessions: Yes
+killAllSessions: No
+killAllSessionsByPattern: No
+killSessions: No
+refreshSessions: No
+startSession: Yes
+
+# Administrative Commands
+createIndexes: No
+createView: No
+drop: No
+dropDatabase: No
+dropIndexes: No
+
+# Diagnositc Commands
+buildInfo: Yes
+collStats: No
+dataSize: No
+dbStats: No
+serverStatus: No
+

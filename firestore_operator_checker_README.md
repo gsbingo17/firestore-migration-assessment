@@ -4,12 +4,12 @@ This tool examines MongoDB code/logs to determine if there are any queries which
 
 ## Key Features
 
-- **Context-Aware Detection**: Recognizes that some operators behave differently in different contexts:
-  - `$sort:stage` (aggregation pipeline) vs `$sort:update` (update operations)
-  - `$push:accumulator` (aggregation) vs `$push:update` (update operations)
-  - `$slice:projection` vs `$slice:update`
-- **Special Operator Handling**: Handles complex operators like positional operators (`$[]`, `$[<identifier>]`)
-- **Multiple Output Formats**: Scan mode and CSV reports
+- **Robust Operator Detection**: Uses improved pattern matching with literal string search for MongoDB operators and regex for commands
+- **False Positive Prevention**: Enhanced validation to avoid matching operators within variable names or comments
+- **Flexible File Filtering**: Support for including/excluding file extensions and directories
+- **Multiple Output Formats**: Scan mode for detailed analysis and CSV reports for compatibility overview
+- **Comprehensive Reporting**: Detailed line-by-line analysis with exact file locations and line numbers
+- **Enhanced Argument Support**: Supports both `--option=value` and `--option value` syntax formats
 
 ## Requirements
 - Bash shell
@@ -17,7 +17,7 @@ This tool examines MongoDB code/logs to determine if there are any queries which
 
 ## Installation
 Make the script executable:
-```
+```bash
 chmod +x firestore_operator_checker.sh
 ```
 
@@ -26,12 +26,12 @@ chmod +x firestore_operator_checker.sh
 Usage: firestore_operator_checker.sh [OPTIONS]
 
 Options:
-  --mode=SCAN|CSV            Operation mode (default: SCAN)
-  --dir=DIR                  Directory to scan
-  --file=FILE                Specific file to scan
-  --excluded-extensions=EXT  Comma-separated list of extensions to exclude (default: none)
-  --included-extensions=EXT  Comma-separated list of extensions to include (default: all)
-  --excluded-directories=DIR Comma-separated list of directories to exclude (default: none)
+  --mode SCAN|CSV            Operation mode (default: SCAN)
+  --dir DIR                  Directory to scan
+  --file FILE                Specific file to scan
+  --excluded-extensions EXT  Comma-separated list of extensions to exclude (default: none)
+  --included-extensions EXT  Comma-separated list of extensions to include (default: all)
+  --excluded-directories DIR Comma-separated list of directories to exclude (default: none)
   --show-supported           Show supported operators in report
   --help                     Display this help message
 ```
@@ -45,11 +45,16 @@ The tool has two operation modes:
 
 ### Examples
 
-#### Example 1: Scan Mode
-Check for compatibility with files from the folder called test, excluding the ones with extension `.txt`:
+#### Example 1: Scan Mode - Directory with Filtering
+Check for compatibility with files from the folder called test, excluding files with `.txt` extension:
 
-```
+```bash
 ./firestore_operator_checker.sh --mode=scan --dir=test --excluded-extensions=txt
+```
+
+Alternative syntax:
+```bash
+./firestore_operator_checker.sh --mode scan --dir test --excluded-extensions txt
 ```
 
 Output:
@@ -59,43 +64,76 @@ Found 5 files to scan
 Processing file: test/sample-python-1.py
 Processing file: test/mongodb.log
   Found unsupported operator: $facet
-    Line numbers:
-      Line 80: ...
-      Line 82: ...
+    Line 80: db.orders.aggregate([{$facet: {byStatus: [{$group: {_id: "$status"}}]}}])
   Found unsupported operator: $bucket
-    Line numbers:
-      Line 80: ...
-  Found unsupported operator: $bucketAuto
-    Line numbers:
-      Line 82: ...
+    Line 82: db.products.aggregate([{$bucket: {groupBy: "$price", boundaries: [0, 100, 200]}}])
 ...
 
 Firestore Operator Compatibility Summary:
 ----------------------------------------------
 Processed 5 files, skipped 0 files
-Found 4 unsupported operators:
+Found 3 unsupported operators:
+
+Operator: $facet
+Total occurrences: 1
+Locations:
+  test/mongodb.log (line 80)
 
 Operator: $bucket
 Total occurrences: 1
 Locations:
-  test/mongodb.log (line 80)
-...
+  test/mongodb.log (line 82)
+
+Operator: $bucketAuto
+Total occurrences: 1
+Locations:
+  test/mongodb.log (line 85)
 ```
 
-#### Example 2: CSV Mode
+#### Example 2: Scan Mode - Single File
+Scan a specific file:
+
+```bash
+./firestore_operator_checker.sh --mode=scan --file=app/queries.js
+```
+
+#### Example 3: Scan Mode - Include Specific Extensions
+Scan only JavaScript and Python files:
+
+```bash
+./firestore_operator_checker.sh --mode=scan --dir=./src --included-extensions=js,py
+```
+
+#### Example 4: Scan Mode - Exclude Directories
+Scan excluding test and node_modules directories:
+
+```bash
+./firestore_operator_checker.sh --mode=scan --dir=./project --excluded-directories=test,node_modules
+```
+
+#### Example 5: Show Supported Operators
+Include supported operators in the report:
+
+```bash
+./firestore_operator_checker.sh --mode=scan --dir=./src --show-supported
+```
+
+#### Example 6: CSV Mode
 Generate a CSV report of operator compatibility:
 
-```
+```bash
 ./firestore_operator_checker.sh --mode=csv
 ```
 
 This will create a file called `firestore_operator_compatibility.csv` with the following format:
 
-```
+```csv
 Operator,Firestore Support
 $addFields,Yes
 $bucket,No
-...
+$count,Yes
+$facet,No
+$group,Yes
 ```
 
 ## How It Works
@@ -103,18 +141,43 @@ $bucket,No
 The script uses a compatibility data file (`mongodb_compat_data.txt`) that contains a list of MongoDB operators and their compatibility status with Firestore. The format is:
 
 ```
-$operator[:context]: Yes|No
+$operator: Yes|No
+command: Yes|No
 ```
 
 For example:
 ```
-$sort:stage: Yes
-$sort:update: No
-$push:accumulator: Yes
-$push:update: Yes
+$addFields: Yes
+$bucket: No
+$count: Yes
+$facet: No
+$group: Yes
+$limit: Yes
+$match: Yes
+$project: Yes
+$sort: Yes
+$unwind: Yes
+aggregate: Yes
+find: Yes
+insertOne: Yes
+updateMany: Yes
 ```
 
-The script scans files for MongoDB operators and checks their compatibility status. It also performs context-aware detection to determine if an operator is used in a supported context.
+### Detection Process
+
+1. **Pattern Matching**: The script uses different search strategies:
+   - **MongoDB Operators** (starting with `$`): Uses literal string search for exact matches
+   - **MongoDB Commands**: Uses regex with word boundaries to avoid false positives
+
+2. **Validation**: Each match is validated to avoid false positives:
+   - Skips commented lines (lines starting with `//`)
+   - For operators starting with `$`, ensures they're not part of variable names
+   - Verifies the operator context matches the expected pattern
+
+3. **Reporting**: Provides detailed information including:
+   - File path and line number for each occurrence
+   - Total count of occurrences per operator
+   - Summary of all unsupported operators found
 
 ## Collecting MongoDB Operation Logs
 
@@ -126,7 +189,7 @@ To effectively analyze MongoDB query patterns, you'll need to capture operation 
 
 MongoDB's default configuration only logs queries that exceed a 100ms execution time threshold. To view your current profiling configuration, execute this command in the MongoDB shell:
 
-```
+```javascript
 > db.getProfilingStatus()
 {
   "was": 0,
@@ -137,13 +200,13 @@ MongoDB's default configuration only logs queries that exceed a 100ms execution 
 
 To capture all queries regardless of execution time, modify the slow query threshold to `-1`:
 
-```
+```javascript
 > db.setProfilingLevel(0, -1)
 ```
 
 When you've finished collecting query data, restore the original threshold:
 
-```
+```javascript
 > db.setProfilingLevel(0, 100)
 ```
 
@@ -239,7 +302,7 @@ When analyzing application code, consider scanning these file types:
 - Pay special attention to data access layers, repositories, or service files
 
 Example command to scan a Node.js application:
-```
+```bash
 ./firestore_operator_checker.sh --mode=scan --dir=./src --included-extensions=js,ts --excluded-directories=node_modules,test
 ```
 
@@ -248,6 +311,7 @@ Example command to scan a Node.js application:
 - For large files, make sure you have enough available RAM or split the files accordingly.
 - With the exception of operators used, there is no logging of the file contents.
 - Temporary files are created in `/tmp` and are automatically cleaned up when the script exits.
+- The script handles both `--option=value` and `--option value` argument formats for flexibility.
 
 ## License
 [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0)
