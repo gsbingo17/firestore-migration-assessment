@@ -21,7 +21,7 @@ UNSUPPORTED_INDEX_TYPES=("2d" "2dsphere" "hashed" "text")
 
 # Unsupported index options/features (detected in index properties)
 UNSUPPORTED_INDEX_OPTIONS=("storageEngine" "dropDuplicates" 
-                          "unique" "expireAfterSeconds" "partialFilterExpression"
+                          "expireAfterSeconds" "partialFilterExpression"
                           "hidden" "case_insensitive" "wildcard" "vector")
 
 # Unsupported collection options
