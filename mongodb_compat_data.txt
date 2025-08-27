@@ -223,7 +223,7 @@ $indexStats: No
 $limit: Yes
 $listLocalSessions: No
 $listSessions: No
-$lookup: No
+$lookup: Yes
 $match: Yes
 $merge: No
 $out: No
