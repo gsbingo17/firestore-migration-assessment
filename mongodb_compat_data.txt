@@ -88,12 +88,14 @@ $bottom: No
 $bottomN: No
 $count: Yes
 $first: Yes
-$firstN: No
+$firstN: Yes
 $last: Yes
-$lastN: No
+$lastN: Yes
 $max: Yes
+$median: Yes
 $min: Yes
-$minN: No
+$percentile: Yes
+$minN: Yes
 $push: Yes
 $stdDevPop: No
 $stdDevSamp: No
@@ -195,6 +197,7 @@ $mergeObjects: Yes
 $natural: Yes
 $rand: No
 $sampleRate: No
+$setField: No
 
 # Set Operators
 $allElementsTrue: Yes
@@ -215,7 +218,7 @@ $collStats: No
 $count: Yes
 $currentOp: No
 $documents: Yes
-$facet: No
+$facet: Yes
 $geoNear: No
 $graphLookup: No
 $group: Yes
@@ -238,7 +241,7 @@ $setWindowFields: No
 $skip: Yes
 $sort: Yes
 $sortByCount: Yes
-$unionWith: No
+$unionWith: Yes
 $unset: Yes
 $unwind: Yes
 
@@ -261,6 +264,7 @@ $substr: Yes
 $substrBytes: Yes
 $substrCP: Yes
 $toLower: Yes
+$toString: Yes
 $toUpper: Yes
 $trim: Yes
 
