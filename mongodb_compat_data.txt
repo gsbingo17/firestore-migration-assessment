@@ -14,7 +14,7 @@ $bitsAnySet: No
 $bitsAllSet: No
 
 # Comment Operator
-$comment: No
+# $comment: No
 
 # Comparison Operators
 $eq: Yes
