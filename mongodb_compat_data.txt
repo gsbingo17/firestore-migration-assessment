@@ -47,7 +47,7 @@ $or: Yes
 # Projection Operators
 $: Yes
 $elemMatch: Yes
-$meta: No
+$meta: Yes
 $slice: Yes
 
 # Update Operators - Array Operators
@@ -166,11 +166,11 @@ $binarySize: Yes
 $bsonSize: Yes
 
 # Date Operators
-$dateAdd: No
-$dateDiff: No
-$dateFromParts: No
+$dateAdd: Yes
+$dateDiff: Yes
+$dateFromParts: Yes
 $dateFromString: Yes
-$dateSubtract: No
+$dateSubtract: Yes
 $dateToParts: Yes
 $dateToString: Yes
 $dateTrunc: Yes
@@ -195,7 +195,7 @@ $getField: Yes
 $literal: Yes
 $mergeObjects: Yes
 $natural: Yes
-$rand: No
+$rand: Yes
 $sampleRate: No
 $setField: No
 
@@ -235,7 +235,7 @@ $project: Yes
 $redact: No
 $replaceRoot: Yes
 $replaceWith: Yes
-$sample: No
+$sample: Yes
 $set: Yes
 $setWindowFields: No
 $skip: Yes
@@ -279,7 +279,7 @@ $$REMOVE: Yes
 $$ROOT: Yes
 
 # Text Search Operators
-$meta: No
+$meta: Yes
 $search No
 
 # Trigonometry Operators
