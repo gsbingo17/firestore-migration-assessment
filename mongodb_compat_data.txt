@@ -213,7 +213,7 @@ $setWindowFields: No
 $addFields: Yes
 $bucket: Yes
 $bucketAuto: No
-$changeStreams: No
+$changeStream: Yes
 $collStats: No
 $count: Yes
 $currentOp: No
@@ -280,7 +280,7 @@ $$ROOT: Yes
 
 # Text Search Operators
 $meta: Yes
-$search No
+$search: Yes
 
 # Trigonometry Operators
 $acos: No
@@ -360,9 +360,10 @@ refreshSessions: No
 startSession: Yes
 
 # Administrative Commands
-createIndexes: No
+createIndex: Yes
+createIndexes: Yes
 createView: No
-drop: No
+drop: Yes
 dropDatabase: No
 dropIndexes: No
 
