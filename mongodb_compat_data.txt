@@ -334,7 +334,7 @@ $nearSphere: No
 $uniqueDocs: No
 
 # Query and Write Operations
-watch: No
+watch: Yes
 delete: Yes
 eval: No
 find: Yes
