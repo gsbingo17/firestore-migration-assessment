@@ -14,14 +14,15 @@ DEBUG=false
 DIR=""
 FILE=""
 SUMMARY=true
-SUPPORT_2DSPHERE=false
 
 # Unsupported index types (detected in key values or structure)
-UNSUPPORTED_INDEX_TYPES=("2d" "2dsphere" "hashed" "text")
+# Note: Firestore now supports 2d, 2dsphere, and text index types
+UNSUPPORTED_INDEX_TYPES=("hashed")
 
 # Unsupported index options/features (detected in index properties)
+# Note: Firestore now supports expireAfterSeconds (TTL indexes)
 UNSUPPORTED_INDEX_OPTIONS=("storageEngine" "dropDuplicates" 
-                          "expireAfterSeconds" "partialFilterExpression"
+                          "partialFilterExpression"
                           "hidden" "case_insensitive" "wildcard" "vector")
 
 # Unsupported collection options
@@ -32,7 +33,6 @@ TEMP_DIR=$(mktemp -d)
 ISSUES_FILE="$TEMP_DIR/issues.json"
 SUMMARY_FILE="$TEMP_DIR/summary.txt"
 UNSUPPORTED_INDEXES_FILE="$TEMP_DIR/unsupported_indexes.txt"
-UNIQUE_INDEXES_FILE="$TEMP_DIR/unique_indexes.txt"
 
 # Cleanup function
 cleanup() {
@@ -119,15 +119,10 @@ total_indexes=0
 incompatible_indexes=0
 
 # Initialize individual counters for backward compatibility
-count_2d=0
-count_2dsphere=0
 count_hashed=0
-count_text=0
 count_storageEngine=0
 count_collation=0
 count_dropDuplicates=0
-count_unique=0
-count_expireAfterSeconds=0
 count_partialFilterExpression=0
 count_hidden=0
 count_case_insensitive=0
@@ -148,14 +143,8 @@ done
 
 # Legacy file names for backward compatibility
 UNSUPPORTED_INDEXES_FILE="$TEMP_DIR/unsupported_indexes.txt"
-UNIQUE_INDEXES_FILE="$TEMP_DIR/unique_indexes.txt"
-TEXT_INDEXES_FILE="$TEMP_DIR/text_indexes.txt"
-TTL_INDEXES_FILE="$TEMP_DIR/ttl_indexes.txt"
 PARTIAL_INDEXES_FILE="$TEMP_DIR/partial_indexes.txt"
 echo "" > "$UNSUPPORTED_INDEXES_FILE"
-echo "" > "$UNIQUE_INDEXES_FILE"
-echo "" > "$TEXT_INDEXES_FILE"
-echo "" > "$TTL_INDEXES_FILE"
 echo "" > "$PARTIAL_INDEXES_FILE"
 
 # Find all metadata files
@@ -206,30 +195,8 @@ process_index() {
         IFS=':' read -r key_name key_type <<< "$key_value"
         debug "      Key: $key_name, Type: $key_type"
         
-        # Special handling for text indexes
-        if [[ "$key_name" == "_fts" && ("$key_type" == "\"text\"" || "$key_type" == "text") ]]; then
-            has_issue=true
-            local type="text"
-            count_text=$((count_text + 1))
-            echo "${namespace}.${index_name}" >> "$TEXT_INDEXES_FILE"  # Use legacy file for consistency
-            
-            # Add to issues file
-            jq --arg db "$db_name" --arg coll "$collection_name" --arg idx "$index_name" \
-               --arg type "$type" \
-               '. + {($db): {($coll): {($idx): {"unsupported_index_type": $type}}}}' "$ISSUES_FILE" > "$TEMP_DIR/temp.json"
-            mv "$TEMP_DIR/temp.json" "$ISSUES_FILE"
-            
-            debug "      Found text index: $index_name"
-            continue
-        fi
-        
-        # Check other index types
+        # Check index types against unsupported list
         for type in "${UNSUPPORTED_INDEX_TYPES[@]}"; do
-            # Skip text as it's handled separately
-            if [[ "$type" == "text" ]]; then
-                continue
-            fi
-            
             debug "        Checking against unsupported type: $type"
             if [[ "$key_type" == "\"$type\"" || "$key_type" == "$type" ]]; then
                 debug "        MATCH FOUND: $key_type is an unsupported type ($type)"
@@ -237,8 +204,6 @@ process_index() {
                 
                 # Increment appropriate counter
                 case "$type" in
-                    "2d") count_2d=$((count_2d + 1)) ;;
-                    "2dsphere") count_2dsphere=$((count_2dsphere + 1)) ;;
                     "hashed") count_hashed=$((count_hashed + 1)) ;;
                 esac
                 
@@ -262,18 +227,6 @@ process_index() {
         local option_found=false
         
         case "$option" in
-            "unique")
-                if jq -e '.unique == true' <<< "$index" > /dev/null; then
-                    option_found=true
-                fi
-                ;;
-                
-            "expireAfterSeconds")
-                if jq -e '.expireAfterSeconds != null' <<< "$index" > /dev/null; then
-                    option_found=true
-                fi
-                ;;
-                
             "partialFilterExpression")
                 if jq -e '.partialFilterExpression != null' <<< "$index" > /dev/null; then
                     option_found=true
@@ -330,8 +283,6 @@ process_index() {
                 "storageEngine") count_storageEngine=$((count_storageEngine + 1)) ;;
                 "collation") count_collation=$((count_collation + 1)) ;;
                 "dropDuplicates") count_dropDuplicates=$((count_dropDuplicates + 1)) ;;
-                "unique") count_unique=$((count_unique + 1)) ;;
-                "expireAfterSeconds") count_expireAfterSeconds=$((count_expireAfterSeconds + 1)) ;;
                 "partialFilterExpression") count_partialFilterExpression=$((count_partialFilterExpression + 1)) ;;
                 "hidden") count_hidden=$((count_hidden + 1)) ;;
                 "case_insensitive") count_case_insensitive=$((count_case_insensitive + 1)) ;;
@@ -341,12 +292,6 @@ process_index() {
             
             # Write to tracking files
             case "$option" in
-                "unique")
-                    echo "${namespace}.${index_name}" >> "$UNIQUE_INDEXES_FILE"
-                    ;;
-                "expireAfterSeconds")
-                    echo "${namespace}.${index_name}" >> "$TTL_INDEXES_FILE"
-                    ;;
                 "partialFilterExpression")
                     echo "${namespace}.${index_name}" >> "$PARTIAL_INDEXES_FILE"
                     ;;
@@ -472,28 +417,6 @@ if [[ "$SUMMARY" == "true" ]]; then
     echo "Incompatible indexes: $incompatible_indexes ($incompatible_percent%)" >> "$SUMMARY_FILE"
     
     # Report on unsupported index types
-    if [[ $count_2d -gt 0 ]]; then
-        echo "" >> "$SUMMARY_FILE"
-        echo "2d indexes found: $count_2d" >> "$SUMMARY_FILE"
-        echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        while read -r line; do
-            if [[ -n "$line" ]]; then
-                echo "    * $line" >> "$SUMMARY_FILE"
-            fi
-        done < "$TEMP_DIR/2d_indexes.txt"
-    fi
-    
-    if [[ $count_2dsphere -gt 0 ]]; then
-        echo "" >> "$SUMMARY_FILE"
-        echo "2dsphere indexes found: $count_2dsphere" >> "$SUMMARY_FILE"
-        echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        while read -r line; do
-            if [[ -n "$line" ]]; then
-                echo "    * $line" >> "$SUMMARY_FILE"
-            fi
-        done < "$TEMP_DIR/2dsphere_indexes.txt"
-    fi
-    
     if [[ $count_hashed -gt 0 ]]; then
         echo "" >> "$SUMMARY_FILE"
         echo "Hashed indexes found: $count_hashed" >> "$SUMMARY_FILE"
@@ -505,40 +428,7 @@ if [[ "$SUMMARY" == "true" ]]; then
         done < "$TEMP_DIR/hashed_indexes.txt"
     fi
     
-    if [[ $count_text -gt 0 ]]; then
-        echo "" >> "$SUMMARY_FILE"
-        echo "Text indexes found: $count_text" >> "$SUMMARY_FILE"
-        echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        while read -r line; do
-            if [[ -n "$line" ]]; then
-                echo "    * $line" >> "$SUMMARY_FILE"
-            fi
-        done < "$TEXT_INDEXES_FILE"
-    fi
-    
     # Report on unsupported index options
-    if [[ $count_unique -gt 0 ]]; then
-        echo "" >> "$SUMMARY_FILE"
-        echo "Unique indexes found: $count_unique" >> "$SUMMARY_FILE"
-        echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        while read -r line; do
-            if [[ -n "$line" ]]; then
-                echo "    * $line" >> "$SUMMARY_FILE"
-            fi
-        done < "$UNIQUE_INDEXES_FILE"
-    fi
-    
-    if [[ $count_expireAfterSeconds -gt 0 ]]; then
-        echo "" >> "$SUMMARY_FILE"
-        echo "TTL indexes found: $count_expireAfterSeconds" >> "$SUMMARY_FILE"
-        echo "  Affected indexes:" >> "$SUMMARY_FILE"
-        while read -r line; do
-            if [[ -n "$line" ]]; then
-                echo "    * $line" >> "$SUMMARY_FILE"
-            fi
-        done < "$TTL_INDEXES_FILE"
-    fi
-    
     if [[ $count_partialFilterExpression -gt 0 ]]; then
         echo "" >> "$SUMMARY_FILE"
         echo "Partial indexes found: $count_partialFilterExpression" >> "$SUMMARY_FILE"

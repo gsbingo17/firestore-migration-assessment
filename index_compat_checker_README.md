@@ -150,30 +150,16 @@ Output:
 Index Compatibility Summary:
 ---------------------------
 Total indexes: 19
-Compatible indexes: 13 (68.4%)
-Incompatible indexes: 6 (31.6%)
-
-Unique indexes found: 2
-  Affected indexes:
-    * test.users.email_1
-    * test.users.lastName_1
-
-Text indexes found: 1
-  Affected indexes:
-    * test.products.product_text_search_index
-
-TTL indexes found: 1
-  Affected indexes:
-    * test.log_entries.log_entry_ttl_index
+Compatible indexes: 15 (78.9%)
+Incompatible indexes: 4 (21.1%)
 
 Partial indexes found: 1
   Affected indexes:
     * test.users.active_users_email_index
 
-Unsupported index types found:
-  - hashed
-    Affected indexes:
-      * test.users.userId_hashed
+Hashed indexes found: 1
+  Affected indexes:
+    * test.users.userId_hashed
 ```
 
 
@@ -182,22 +168,29 @@ Unsupported index types found:
 The tool checks for the following compatibility issues when migrating from MongoDB to Firestore:
 
 1. **Unsupported Index Types**:
-   - 2d (geospatial)
-   - 2dsphere
    - hashed
 
-2. **Unsupported Index Features**:
-   - Unique indexes
-   - Text indexes
-   - TTL indexes (expireAfterSeconds)
+2. **Supported Index Types** (no longer flagged):
+   - 2d (geospatial) — now supported by Firestore
+   - 2dsphere — now supported by Firestore
+   - text — now supported by Firestore
+
+3. **Unsupported Index Features**:
    - Partial indexes (partialFilterExpression)
 
-3. **Unsupported Index Options**:
+4. **Supported Index Options** (no longer flagged):
+   - Unique indexes — now supported by Firestore
+   - TTL indexes (expireAfterSeconds) — now supported by Firestore
+
+5. **Unsupported Index Options**:
    - storageEngine
    - collation
    - dropDuplicates
+   - hidden
+   - wildcard
+   - vector
 
-4. **Unsupported Collection Options**:
+6. **Unsupported Collection Options**:
    - capped collections
 
 ## Features
@@ -205,11 +198,10 @@ The tool checks for the following compatibility issues when migrating from Mongo
 The index compatibility checker includes the following features:
 
 1. **Comprehensive Index Analysis**:
-   - Detects unsupported index types (2d, 2dsphere, hashed)
-   - Identifies unique indexes (indexes with the `unique: true` property)
-   - Finds text indexes (indexes with `"_fts": "text"` in the key field)
-   - Detects TTL indexes (indexes with the `expireAfterSeconds` field)
+   - Detects unsupported index types (hashed)
    - Identifies partial indexes (indexes with the `partialFilterExpression` field)
+   - Detects hidden, wildcard, and vector indexes
+   - Note: 2d, 2dsphere, text index types, unique indexes, and TTL indexes (expireAfterSeconds) are now supported by Firestore and no longer flagged
 
 2. **Flexible Input Options**:
    - Can process a directory of metadata files with the `--dir` option
