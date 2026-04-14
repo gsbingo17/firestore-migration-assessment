@@ -329,7 +329,7 @@ $uniqueDocs: No
 # Query Selectors
 $geoIntersects: No
 $geoWithin: No
-$near: No
+$near: Yes
 $nearSphere: No
 $uniqueDocs: No
 
