@@ -38,16 +38,19 @@ dbs.forEach(function(dbName) {
     // Switch to this database
     var currentDb = mongoDb.getSiblingDB(dbName);
     
-    // Get all collections (excluding system collections)
-    var collections = currentDb.getCollectionNames()
-        .filter(function(c) {
-            return !c.startsWith("system.");
+    // Get all collections (excluding system collections and views)
+    var collections = currentDb.getCollectionInfos()
+        .filter(function(info) {
+            return info.type === "collection" && !info.name.startsWith("system.");
+        })
+        .map(function(info) {
+            return info.name;
         });
     
     // Process each collection
     collections.forEach(function(collName) {
         // Get indexes for this collection
-        var indexes = currentDb[collName].getIndexes();
+        var indexes = currentDb.getCollection(collName).getIndexes();
         
         if (indexes.length === 0) {
             return;
