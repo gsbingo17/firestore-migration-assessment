@@ -173,11 +173,18 @@ run_datatype_assessment() {
     if [[ -n "$FILE" ]]; then
         datatype_args="--file $FILE"
     elif [[ -n "$DIR" ]]; then
-        # Check if data subdirectory exists, use it; otherwise use main directory
+        # Check if data subdirectory exists
         if [[ -d "$DIR/data" ]]; then
             datatype_args="--dir $DIR/data"
         else
-            datatype_args="--dir $DIR"
+            echo "Warning: No data/ subdirectory found in $DIR. Skipping datatype assessment."
+            echo "  Use --file to specify a specific file for datatype checking."
+            echo "Datatype assessment skipped: No data/ subdirectory found in $DIR" > "$DATATYPE_OUTPUT"
+            echo "" >> "$SUMMARY_OUTPUT"
+            echo "Datatype Compatibility:" >> "$SUMMARY_OUTPUT"
+            echo "  Skipped: No data/ subdirectory found in $DIR" >> "$SUMMARY_OUTPUT"
+            echo "" >> "$SUMMARY_OUTPUT"
+            return
         fi
     fi
     
@@ -212,11 +219,18 @@ run_operator_assessment() {
     if [[ -n "$FILE" ]]; then
         operator_args="$operator_args --file $FILE"
     elif [[ -n "$DIR" ]]; then
-        # Check if app subdirectory exists, use it; otherwise use main directory
+        # Check if app subdirectory exists
         if [[ -d "$DIR/app" ]]; then
             operator_args="$operator_args --dir $DIR/app"
         else
-            operator_args="$operator_args --dir $DIR"
+            echo "Warning: No app/ subdirectory found in $DIR. Skipping operator assessment."
+            echo "  Use --file to specify a specific file for operator checking."
+            echo "Operator assessment skipped: No app/ subdirectory found in $DIR" > "$OPERATOR_OUTPUT"
+            echo "" >> "$SUMMARY_OUTPUT"
+            echo "Operator Compatibility:" >> "$SUMMARY_OUTPUT"
+            echo "  Skipped: No app/ subdirectory found in $DIR" >> "$SUMMARY_OUTPUT"
+            echo "" >> "$SUMMARY_OUTPUT"
+            return
         fi
     fi
     
