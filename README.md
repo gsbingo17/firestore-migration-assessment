@@ -21,20 +21,24 @@ The Firestore Migration Assessment Suite provides a comprehensive analysis of po
 The assessment suite uses a smart subdirectory routing system to organize different types of files:
 
 ```
-your_project/
-├── app/                    # Application code for operator checking
-├── data/                   # JSON files for datatype checking
-├── indexes.metadata.json   # Index definitions for index checking
-└── mongodb_metadata.json   # Comprehensive metadata for MongoDB instance
+sample_data/
+├── app/                          # Application code OR MongoDB logs (for operator checking)
+│   ├── app.js                    # Option A: Your MongoDB application source code
+│   └── mongod.log                # Option B: MongoDB log file with profiler output
+├── data/                         # Sample documents (for datatype checking)
+│   ├── dbname_collection1_sample.json
+│   └── dbname_collection2_sample.json
+├── indexes.metadata.json         # Index definitions (for index checking)
+└── mongodb_metadata.json         # Comprehensive metadata for MongoDB instance
 ```
 
 When you specify a directory with the `--dir` parameter, the assessment suite automatically:
 
-- Uses the `app` subdirectory for operator checking (if it exists)
-- Uses the `data` subdirectory for datatype checking (if it exists)
-- Uses the main directory for index checking
+- Uses the `app/` subdirectory for operator checking (scans for MongoDB operators in code or logs)
+- Uses the `data/` subdirectory for datatype checking (analyzes JSON documents for unsupported types)
+- Uses the root directory for index checking (reads `*.metadata.json` files)
 
-This organization helps each checker focus on relevant files and reduces scanning overlap. If a subdirectory doesn't exist, the checker falls back to using the main directory.
+This organization helps each checker focus on relevant files and reduces scanning overlap. **If a required subdirectory doesn't exist, the corresponding assessment is skipped with a warning** — the checker will NOT fall back to scanning the main directory, which prevents scanning irrelevant files.
 
 **Note:** With this directory structure, you only need to specify the `--dir` parameter. There's no need to use `--log-file`, `--data-file`, or `--metadata-dir` separately, as the subdirectory routing handles file organization automatically.
 
@@ -87,14 +91,70 @@ Options:
 
 ## Examples
 
-### Run All Assessments on a Directory
+### Step-by-Step: Complete Assessment Workflow
+
+Follow these steps to collect all necessary data and run the assessment:
+
+#### Step 1: Collect MongoDB Data (Sample Documents, Indexes, Metadata)
+
+Use the `mongodb_collector.sh` script to automatically collect sample documents, index definitions, and instance metadata from your MongoDB instance:
 
 ```bash
-# Recommended approach: Use subdirectory structure with single --dir parameter
+# Collect data from an authenticated MongoDB instance
+./mongodb_collector.sh --uri "mongodb://username:password@host:port/database"
+
+# Or specify a custom output directory
+./mongodb_collector.sh --uri "mongodb://username:password@host:port/database" --output-dir my_assessment
+```
+
+This automatically creates the following structure:
+```
+sample_data/
+├── data/                         # Sample documents (auto-collected)
+│   ├── dbname_collection1_sample.json
+│   └── dbname_collection2_sample.json
+├── indexes.metadata.json         # Index definitions (auto-collected)
+└── mongodb_metadata.json         # Instance metadata (auto-collected)
+```
+
+#### Step 2: Collect Application Code or MongoDB Logs (for Operator Checking)
+
+The operator checker needs either your application source code or MongoDB logs to identify unsupported MongoDB operators. Place them in the `app/` subdirectory:
+
+**Option A: Application source code** (if available)
+```bash
+# Create the app directory and copy your MongoDB application code
+mkdir -p sample_data/app
+cp -r /path/to/your-mongodb-app/* sample_data/app/
+```
+
+**Option B: MongoDB log file** (if application code is not available)
+
+Enable MongoDB profiler to log all queries to the MongoDB log file, then collect the log:
+
+```javascript
+// In mongosh: Set profiling level to log ALL queries to MongoDB log
+db.setProfilingLevel(0, -1)
+```
+
+This sets the slow query threshold to -1ms, causing all operations to be logged to the MongoDB log file. Let your application run for a representative period to capture typical query patterns, then collect the log:
+
+```bash
+# Create the app directory and copy the MongoDB log file
+mkdir -p sample_data/app
+cp /var/log/mongodb/mongod.log sample_data/app/
+```
+
+> **Note:** Remember to reset the profiling level after collecting logs to avoid performance impact:
+> ```javascript
+> db.setProfilingLevel(0, 100)  // Reset to default (log queries slower than 100ms)
+> ```
+
+#### Step 3: Run the Assessment
+
+```bash
+# Run all assessments
 ./firestore_migration_assessment.sh --run-all --dir sample_data
-# - Operator checker scans: sample_data/app (if exists) or sample_data
-# - Datatype checker scans: sample_data/data (if exists) or sample_data
-# - Index checker scans: sample_data
 
 # Generate a report with detailed information
 ./firestore_migration_assessment.sh --run-all --dir sample_data --verbose
@@ -103,15 +163,10 @@ Options:
 ./firestore_migration_assessment.sh --run-all --dir sample_data --quiet
 ```
 
-### Collect Sample Data with Authentication
-
-```bash
-# Collect sample data from an authenticated MongoDB instance
-./mongodb_collector.sh --uri "mongodb://username:password@host:port/database"
-
-# Then run assessment on the collected data
-./firestore_migration_assessment.sh --run-all --dir sample_data
-```
+The assessment suite automatically routes to the correct subdirectory:
+- **Operator checker** → scans `sample_data/app/` (skipped if `app/` doesn't exist)
+- **Datatype checker** → scans `sample_data/data/` (skipped if `data/` doesn't exist)
+- **Index checker** → scans `sample_data/` for `*.metadata.json` files
 
 ### Required MongoDB Privileges
 
@@ -160,27 +215,29 @@ db.createUser({
 #### Directory-Based Assessment
 
 ```bash
-# Use subdirectory structure with single --dir parameter
+# Operator checking only (scans sample_data/app/)
 ./firestore_migration_assessment.sh --run-operator --dir sample_data
-# (This will scan sample_data/app if it exists)
 
+# Datatype checking only (scans sample_data/data/)
 ./firestore_migration_assessment.sh --run-datatype --dir sample_data
-# (This will scan sample_data/data if it exists)
 
+# Index checking only (scans sample_data/ for *.metadata.json files)
 ./firestore_migration_assessment.sh --run-index --dir sample_data
-# (This will scan sample_data for metadata files)
 ```
 
 #### File-Based Assessment
 
-```bash
-# Check specific files with the unified --file parameter
-./firestore_migration_assessment.sh --file sample_data/data/sample.json --run-datatype
-./firestore_migration_assessment.sh --file logs/mongodb.log --run-operator
-./firestore_migration_assessment.sh --file sample_data/indexes.metadata.json --run-index
+When using `--file`, the assessment runs directly on the specified file without subdirectory routing:
 
-# Run multiple assessment types on a single file
-./firestore_migration_assessment.sh --file sample_data/data/sample.json --run-all
+```bash
+# Check a specific data file for unsupported types
+./firestore_migration_assessment.sh --file sample_data/data/sample.json --run-datatype
+
+# Check a MongoDB log or source file for unsupported operators
+./firestore_migration_assessment.sh --file sample_data/app/mongod.log --run-operator
+
+# Check an index metadata file for compatibility
+./firestore_migration_assessment.sh --file sample_data/indexes.metadata.json --run-index
 ```
 
 ### Generate JSON Report
@@ -192,26 +249,13 @@ db.createUser({
 ./firestore_migration_assessment.sh --dir /path/to/project --run-all --output-format json --quiet
 ```
 
-### Organizing Files for Optimal Scanning
+### Quick Reference: What Goes Where
 
-For best results, organize your files according to the expected directory structure:
-
-```bash
-# Create the recommended directory structure
-mkdir -p sample_data/app sample_data/data
-
-# Place application code in the app directory
-cp -r your-mongodb-app/* sample_data/app/
-
-# Place JSON data files in the data directory
-cp *.json sample_data/data/
-
-# Place index definitions and MongoDB metadata in the main directory
-cp indexes.metadata.json mongodb_metadata.json sample_data/
-
-# Run the assessment
-./firestore_migration_assessment.sh --run-all --dir sample_data
-```
+| Directory | Content | How to Collect |
+|-----------|---------|----------------|
+| `sample_data/data/` | Sample JSON documents | Auto-collected by `mongodb_collector.sh` |
+| `sample_data/app/` | App source code **or** MongoDB logs | Manually: copy app code or MongoDB log file |
+| `sample_data/` (root) | `indexes.metadata.json`, `mongodb_metadata.json` | Auto-collected by `mongodb_collector.sh` |
 
 ## Output Formats
 
@@ -316,10 +360,10 @@ The JSON format provides structured data that can be processed programmatically.
     "index": {
       "incompatible_indexes": [
         {
-          "type": "2dsphere",
+          "type": "Hashed",
           "count": 1,
           "indexes": [
-            "test.collection.location_2dsphere"
+            "test.users.userId_hashed"
           ]
         }
       ]
@@ -336,9 +380,9 @@ The assessment suite works by:
 
 1. Parsing command-line arguments to determine which assessments to run
 2. Running each selected assessment tool with the appropriate parameters
-   - For operator checker: Uses `{dir}/app` if it exists, otherwise uses `{dir}`
-   - For datatype checker: Uses `{dir}/data` if it exists, otherwise uses `{dir}`
-   - For index checker: Uses `{dir}` directly
+   - For operator checker: Uses `{dir}/app/` if it exists, otherwise **skips** with a warning
+   - For datatype checker: Uses `{dir}/data/` if it exists, otherwise **skips** with a warning
+   - For index checker: Uses `{dir}/` directly (scans for `*.metadata.json` files)
 3. Capturing and processing the output from each tool
 4. Generating a consolidated report in the specified format
 
@@ -349,7 +393,7 @@ This subdirectory routing helps organize different types of files and ensures ea
 - The suite inherits the limitations of each individual checker
 - JSON output format may have issues with complex nested content in the details section
 - The suite assumes all checker scripts are in the same directory
-- If subdirectories don't exist, checkers fall back to scanning the main directory, which may include irrelevant files
+- If required subdirectories (`app/` or `data/`) don't exist, the corresponding assessment is skipped with a warning
 
 ## License
 
