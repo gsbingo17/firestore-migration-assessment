@@ -119,7 +119,7 @@ sample_data/
 
 #### Step 2: Collect Application Code or MongoDB Logs (for Operator Checking)
 
-The operator checker needs either your application source code or MongoDB logs to identify unsupported MongoDB operators. Place them in the `app/` subdirectory:
+The operator checker needs either your application source code or MongoDB logs to identify unsupported MongoDB operators. You should ***manually*** place them in the `app/` subdirectory:
 
 **Option A: Application source code** (if available)
 ```bash
