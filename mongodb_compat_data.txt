@@ -80,7 +80,7 @@ $position: Yes
 $slice: Yes
 $sort: Yes
 
-# Accumulator Expressions (Aggregation)
+# Accumulators - $group (Aggregation)
 $accumulator: No
 $addToSet: Yes
 $avg: Yes
@@ -88,20 +88,28 @@ $bottom: No
 $bottomN: No
 $count: Yes
 $first: Yes
-$firstN: Yes
 $last: Yes
-$lastN: Yes
 $max: Yes
-$median: Yes
+$mergeObjects: Yes
 $min: Yes
-$percentile: Yes
-$minN: Yes
 $push: Yes
 $stdDevPop: No
 $stdDevSamp: No
 $sum: Yes
 $top: No
 $topN: No
+
+# Accumulator Expressions - $project (Aggregation)
+$avg: Yes
+$first: Yes
+$last: Yes
+$max: Yes
+$median: Yes
+$min: Yes
+$percentile: Yes
+$stdDevPop: No
+$stdDevSamp: No
+$sum: Yes
 
 # Arithmetic Operators (Aggregation)
 $abs: Yes
@@ -207,7 +215,6 @@ $setEquals: Yes
 $setIntersection: Yes
 $setIsSubset: Yes
 $setUnion: Yes
-$setWindowFields: No
 
 # Stage operators
 $addFields: Yes
@@ -237,7 +244,7 @@ $replaceRoot: Yes
 $replaceWith: Yes
 $sample: Yes
 $set: Yes
-$setWindowFields: No
+$setWindowFields: Yes
 $skip: Yes
 $sort: Yes
 $sortByCount: Yes
@@ -315,6 +322,35 @@ $type: Yes
 # Variable Operators
 $let: Yes
 $map: Yes
+
+# Window Operators - $setWindowFields (Aggregation)
+$addToSet: Yes
+$avg: Yes
+$bottom: No
+$bottomN: No
+$count: Yes
+$covariancePop: No
+$covarianceSamp: No
+$denseRank: No
+$derivative: No
+$documentNumber: No
+$expMovingAvg: No
+$first: Yes
+$integral: No
+$last: Yes
+$linearFill: No
+$locf: No
+$max: Yes
+$min: Yes
+$minMaxScaler: No
+$push: Yes
+$rank: Yes
+$shift: No
+$stdDevPop: No
+$stdDevSamp: No
+$sum: Yes
+$top: No
+$topN: No
 
 # Geospatial Operators
 $box: No
