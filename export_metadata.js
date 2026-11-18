@@ -62,14 +62,33 @@ try {
         maxBsonObjectSize: buildInfo.maxBsonObjectSize
     };
     
-    // Get server status for storage engine info
+    // Helper to safely convert MongoDB BSON Long / NumberLong / numeric values to JS numbers
+    function toNum(val) {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === "number") return val;
+        if (typeof val === "bigint") return Number(val);
+        if (typeof val.toNumber === "function") return val.toNumber();
+        if (typeof val === "object" && typeof val.low === "number" && typeof val.high === "number") {
+            var unsigned = Boolean(val.unsigned);
+            var low = val.low >>> 0;
+            var high = unsigned ? (val.high >>> 0) : val.high;
+            return high * 4294967296 + low;
+        }
+        var parsed = Number(val);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    // Get server status for storage engine, workload, and WiredTiger cache metrics
     var serverStatus = mongoDb.adminCommand("serverStatus");
+    var uptimeSeconds = Math.max(1, toNum(serverStatus.uptime));
+    var uptimeDays = uptimeSeconds / 86400;
+
     result.mongodb.serverStatus = {
         host: serverStatus.host,
         version: serverStatus.version,
         process: serverStatus.process,
         pid: serverStatus.pid,
-        uptime: serverStatus.uptime,
+        uptime: uptimeSeconds,
         uptimeMillis: serverStatus.uptimeMillis,
         uptimeEstimate: serverStatus.uptimeEstimate,
         localTime: serverStatus.localTime
@@ -79,6 +98,91 @@ try {
     if (serverStatus.storageEngine) {
         result.mongodb.storageEngine = serverStatus.storageEngine.name;
     }
+
+    // Extract cumulative & daily-prorated document/query execution metrics
+    var docMetrics = (serverStatus.metrics && serverStatus.metrics.document) ? serverStatus.metrics.document : {};
+    var qeMetrics = (serverStatus.metrics && serverStatus.metrics.queryExecutor) ? serverStatus.metrics.queryExecutor : {};
+    var opMetrics = (serverStatus.metrics && serverStatus.metrics.operation) ? serverStatus.metrics.operation : {};
+
+    var docsReturnedTotal = toNum(docMetrics.returned);
+    var docsExaminedTotal = toNum(qeMetrics.scannedObjects);
+    var keysExaminedTotal = toNum(qeMetrics.scanned);
+    var insertsTotal = toNum(docMetrics.inserted);
+    var updatesTotal = toNum(docMetrics.updated);
+    var deletesTotal = toNum(docMetrics.deleted);
+    var writesTotal = insertsTotal + updatesTotal + deletesTotal;
+    var scanAndOrderTotal = toNum(opMetrics.scanAndOrder);
+
+    result.mongodb.workloadMetrics = {
+        uptimeSeconds: uptimeSeconds,
+        uptimeDays: Number(uptimeDays.toFixed(4)),
+        totals: {
+            docsExamined: docsExaminedTotal,
+            docsReturned: docsReturnedTotal,
+            keysExamined: keysExaminedTotal,
+            inserts: insertsTotal,
+            updates: updatesTotal,
+            deletes: deletesTotal,
+            writes: writesTotal,
+            scanAndOrder: scanAndOrderTotal
+        },
+        dailyAverage: {
+            docsExaminedPerDay: Number((docsExaminedTotal / uptimeDays).toFixed(2)),
+            docsReturnedPerDay: Number((docsReturnedTotal / uptimeDays).toFixed(2)),
+            keysExaminedPerDay: Number((keysExaminedTotal / uptimeDays).toFixed(2)),
+            insertsPerDay: Number((insertsTotal / uptimeDays).toFixed(2)),
+            updatesPerDay: Number((updatesTotal / uptimeDays).toFixed(2)),
+            deletesPerDay: Number((deletesTotal / uptimeDays).toFixed(2)),
+            writesPerDay: Number((writesTotal / uptimeDays).toFixed(2)),
+            scanAndOrderPerDay: Number((scanAndOrderTotal / uptimeDays).toFixed(2))
+        }
+    };
+
+    // Extract WiredTiger cache statistics (in-memory hits vs. physical disk reads)
+    var wtCache = (serverStatus.wiredTiger && serverStatus.wiredTiger.cache) ? serverStatus.wiredTiger.cache : null;
+    var cacheRequests = wtCache ? toNum(wtCache["pages requested from the cache"]) : 0;
+    var cacheMisses = wtCache ? toNum(wtCache["pages read into cache"]) : 0;
+    var cacheHits = Math.max(0, cacheRequests - cacheMisses);
+    var cacheHitRatePct = cacheRequests > 0 ? (cacheHits / cacheRequests) * 100 : 0;
+    var diskMissRatePct = cacheRequests > 0 ? (cacheMisses / cacheRequests) * 100 : 0;
+
+    result.mongodb.wiredTigerCache = {
+        available: Boolean(wtCache),
+        cacheRequests: cacheRequests,
+        cacheHits: cacheHits,
+        cacheMisses: cacheMisses,
+        cacheHitRatePct: Number(cacheHitRatePct.toFixed(2)),
+        diskMissRatePct: Number(diskMissRatePct.toFixed(2)),
+        bytesCurrentlyInCache: wtCache ? toNum(wtCache["bytes currently in the cache"]) : 0,
+        maxBytesConfigured: wtCache ? toNum(wtCache["maximum bytes configured"]) : 0,
+        trackedDirtyBytes: wtCache ? toNum(wtCache["tracked dirty bytes in the cache"]) : 0
+    };
+
+    // Compute TCO Scan-Bloat & In-Memory Cache Diagnostics
+    var scanToReturnRatio = docsReturnedTotal > 0 ? (docsExaminedTotal / docsReturnedTotal) : 0;
+    var unreturnedDocsPerDay = Math.max(0, (docsExaminedTotal - docsReturnedTotal) / uptimeDays);
+    var discardedScanPct = docsExaminedTotal > 0 ? ((docsExaminedTotal - docsReturnedTotal) / docsExaminedTotal) * 100 : 0;
+    var isRamMaskedScanBloat = (cacheHitRatePct >= 80.0) && (scanToReturnRatio > 10.0);
+
+    result.tcoDiagnostics = {
+        scanToReturnRatio: Number(scanToReturnRatio.toFixed(2)),
+        discardedScanPct: Number(discardedScanPct.toFixed(2)),
+        unreturnedDocsPerDay: Number(unreturnedDocsPerDay.toFixed(2)),
+        cacheHitRatePct: Number(cacheHitRatePct.toFixed(2)),
+        diskMissRatePct: Number(diskMissRatePct.toFixed(2)),
+        estimatedInMemoryDocsExaminedPerDay: Number(((docsExaminedTotal / uptimeDays) * (cacheHitRatePct / 100)).toFixed(2)),
+        estimatedDiskDocsExaminedPerDay: Number(((docsExaminedTotal / uptimeDays) * (diskMissRatePct / 100)).toFixed(2)),
+        isRamMaskedScanBloat: isRamMaskedScanBloat,
+        status: isRamMaskedScanBloat
+            ? "IN_MEMORY_SCAN_BLOAT_WARNING"
+            : (scanToReturnRatio > 10.0 ? "HIGH_SCAN_RATIO_WARNING" : "HEALTHY"),
+        message: isRamMaskedScanBloat
+            ? "WARNING: " + cacheHitRatePct.toFixed(1) + "% of reads are served from WiredTiger RAM while DocsExamined is " +
+              scanToReturnRatio.toFixed(1) + "x DocsReturned (" + discardedScanPct.toFixed(1) + "% discarded scans). " +
+              "Because scannedObjects sits above the RAM cache, plugging raw DocsExamined into an operation-metered Firestore TCO calculator " +
+              "will artificially bloat read TCO multiple times. Normalize scan ratio via composite index tuning before sizing."
+            : "Read cache profile and DocsExamined-to-DocsReturned ratio are within normal sizing bounds."
+    };
     
     print(`MongoDB version: ${result.mongodb.version}`);
     print(`Storage engine: ${result.mongodb.storageEngine}`);

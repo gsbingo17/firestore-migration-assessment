@@ -79,7 +79,42 @@ Completed database verification_db: 1 collections, 1 indexes
       },
       "localTime": "2025-07-04T14:16:23.792Z"
     },
-    "storageEngine": "wiredTiger"
+    "storageEngine": "wiredTiger",
+    "workloadMetrics": {
+      "uptimeSeconds": 86400,
+      "uptimeDays": 1.0,
+      "totals": {
+        "docsExamined": 2000000000,
+        "docsReturned": 10000000,
+        "keysExamined": 50000000,
+        "inserts": 400000,
+        "updates": 750000,
+        "deletes": 50000,
+        "writes": 1200000,
+        "scanAndOrder": 15000
+      },
+      "dailyAverage": {
+        "docsExaminedPerDay": 2000000000.00,
+        "docsReturnedPerDay": 10000000.00,
+        "keysExaminedPerDay": 50000000.00,
+        "insertsPerDay": 400000.00,
+        "updatesPerDay": 750000.00,
+        "deletesPerDay": 50000.00,
+        "writesPerDay": 1200000.00,
+        "scanAndOrderPerDay": 15000.00
+      }
+    },
+    "wiredTigerCache": {
+      "available": true,
+      "cacheRequests": 1000000000,
+      "cacheHits": 950000000,
+      "cacheMisses": 50000000,
+      "cacheHitRatePct": 95.00,
+      "diskMissRatePct": 5.00,
+      "bytesCurrentlyInCache": 17179869184,
+      "maxBytesConfigured": 17179869184,
+      "trackedDirtyBytes": 52428800
+    }
   },
   "databases": [
     {

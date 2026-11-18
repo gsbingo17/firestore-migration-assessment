@@ -1,14 +1,15 @@
 # Firestore Migration Assessment Suite
 
-This tool combines the three Firestore compatibility checkers (datatype, operator, and index) into a unified assessment suite for evaluating MongoDB to Firestore migration compatibility.
+This tool combines Firestore compatibility checkers (datatype, operator, and index) with **WiredTiger RAM-Cache & Scan-Bloat TCO Diagnostics** into a unified assessment suite for evaluating MongoDB to Firestore migration compatibility and sizing.
 
 ## Overview
 
-The Firestore Migration Assessment Suite provides a comprehensive analysis of potential compatibility issues when migrating from MongoDB to Firestore. It evaluates:
+The Firestore Migration Assessment Suite provides a comprehensive analysis of potential compatibility and TCO sizing issues when migrating from MongoDB to Firestore. It evaluates:
 
 1. **Data Type Compatibility**: Identifies MongoDB data types that are not supported by Firestore
 2. **Operator Compatibility**: Identifies MongoDB query operators that are not supported in Firestore
 3. **Index Compatibility**: Checks MongoDB index structures for compatibility with Firestore
+4. **TCO & In-Memory Scan-Bloat Diagnostics**: Detects when unindexed collection/filter scans (`metrics.queryExecutor.scannedObjects` vs. `metrics.document.returned`) are masked by MongoDB's WiredTiger RAM cache—preventing artificially bloated "As-Is" Firestore TCO estimates. Includes a RAM-aware TCO calculator template (`tco_calculator/firestore_pricing_calculator_ram_aware.xlsx`). See **[TCO_RAM_CACHE_README.md](TCO_RAM_CACHE_README.md)** for full details.
 
 ## Supported Databases
 
@@ -29,14 +30,14 @@ sample_data/
 │   ├── dbname_collection1_sample.json
 │   └── dbname_collection2_sample.json
 ├── indexes.metadata.json         # Index definitions (for index checking)
-└── mongodb_metadata.json         # Comprehensive metadata for MongoDB instance
+└── mongodb_metadata.json         # Instance, workload & WiredTiger cache metadata
 ```
 
 When you specify a directory with the `--dir` parameter, the assessment suite automatically:
 
 - Uses the `app/` subdirectory for operator checking (scans for MongoDB operators in code or logs)
 - Uses the `data/` subdirectory for datatype checking (analyzes JSON documents for unsupported types)
-- Uses the root directory for index checking (reads `*.metadata.json` files)
+- Uses the root directory for index checking (reads `*.metadata.json` files) and TCO scan-bloat checking (reads `mongodb_metadata.json` or `*mongo_stats*.txt`)
 
 This organization helps each checker focus on relevant files and reduces scanning overlap. **If a required subdirectory doesn't exist, the corresponding assessment is skipped with a warning** — the checker will NOT fall back to scanning the main directory, which prevents scanning irrelevant files.
 
@@ -73,21 +74,24 @@ Options:
                             Uses subdirectory routing:
                             - app/ for operator checking
                             - data/ for datatype checking
-                            - root directory for index checking
+                            - root directory for index & TCO scan-bloat checking
   --file FILE               File to scan (for any assessment type)
-                            Use with --run-datatype, --run-operator, --run-index, or --run-all
+                            Use with --run-datatype, --run-operator, --run-index, --run-tco-check, or --run-all
   --output-format FORMAT    Output format (text, json) [default: text]
   --output-file FILE        File to write the report to [default: stdout]
-  --run-all                 Run all assessment types
+  --run-all                 Run all assessment types (datatype, operator, index, and TCO bloat check)
   --run-datatype            Run only datatype compatibility assessment
   --run-operator            Run only operator compatibility assessment
   --run-index               Run only index compatibility assessment
+  --run-tco-check           Run only WiredTiger RAM-cache vs. disk & Firestore TCO bloat check
+  --region REGION           Target Firestore Enterprise region for TCO pricing [default: us-central1]
+  --target-scan-ratio NUM   Target post-index DocsExamined:DocsReturned ratio [default: 8.0]
   --verbose                 Show detailed information
   --quiet                   Suppress progress messages and non-essential output
   --help                    Display this help message
 ```
 
-> **Note:** You must use either `--dir` for directory-based assessment or `--file` for file-based assessment, but not both. When using `--file`, you must still specify which assessment type to run with `--run-datatype`, `--run-operator`, `--run-index`, or `--run-all`.
+> **Note:** You must use either `--dir` for directory-based assessment or `--file` for file-based assessment, but not both. When using `--file`, you must still specify which assessment type to run with `--run-datatype`, `--run-operator`, `--run-index`, `--run-tco-check`, or `--run-all`.
 
 ## Examples
 
